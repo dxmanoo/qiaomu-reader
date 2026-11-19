@@ -2,6 +2,23 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import pako from "pako";
+import { PACKED_DATA_ALPHABET } from "../src/compact-translations.js";
+
+export function encodeTranslationData(bytes) {
+  const padding = (4 - bytes.length % 4) % 4;
+  let result = String(padding);
+  for (let offset = 0; offset < bytes.length; offset += 4) {
+    let group = 0;
+    for (let i = 0; i < 4; i++) group = group * 256 + (bytes[offset + i] ?? 0);
+    let encoded = "";
+    for (let i = 0; i < 5; i++) {
+      encoded = PACKED_DATA_ALPHABET[group % 85] + encoded;
+      group = Math.floor(group / 85);
+    }
+    result += encoded;
+  }
+  return result;
+}
 
 // Keep editable dictionaries and source-language checks unchanged. Only the
 // distributed bundle shares keys and compresses static language/CMap strings.
@@ -24,7 +41,7 @@ export async function compactTranslations(root = process.cwd()) {
     [id, keys.map(key => Object.hasOwn(dictionary, key) ? dictionary[key] : null)]));
   // Use the already-locked pure JS codec used by JSZip. This avoids differing
   // host zlib versions changing the committed bundle during official rebuilds.
-  const data = Buffer.from(pako.deflateRaw(JSON.stringify({ keys, locales }), { level: 9 })).toString("base64");
+  const data = encodeTranslationData(pako.deflateRaw(JSON.stringify({ keys, locales }), { level: 9 }));
   const sources = new Map(modules.map(([id, file, name, frozen]) => [path.join(root, file),
     `import { translations } from "qbr:translations";\n${name === "default" ? "export default" : `export const ${name} =`} ${frozen ? "Object.freeze(" : ""}translations[${JSON.stringify(id)}]${frozen ? ")" : ""};\n`]));
   return {

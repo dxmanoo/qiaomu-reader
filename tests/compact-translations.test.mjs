@@ -5,7 +5,7 @@ import test from "node:test";
 import { build } from "esbuild";
 import fs from "node:fs";
 import pako from "pako";
-import { compactTranslations } from "../scripts/compact-translations.mjs";
+import { compactTranslations, encodeTranslationData } from "../scripts/compact-translations.mjs";
 import { decodeTranslationData } from "../src/compact-translations.js";
 import { QIAOMU_READER_EN as en } from "../src/i18n-en.js";
 import { QIAOMU_READER_ZH_CN as zh } from "../src/i18n-zh.js";
@@ -68,7 +68,7 @@ for (const profileName of ["standard", "community"]) {
 
 test("packed data preserves Unicode, empty strings, missing entries and own property names", () => {
   const data = { keys: ["emoji", "empty", "missing", "__proto__"], locales: { en: ["中文 🌱 {0}", "", null, "literal property"] } };
-  const payload = Buffer.from(pako.deflateRaw(JSON.stringify(data))).toString("base64");
+  const payload = encodeTranslationData(pako.deflateRaw(JSON.stringify(data)));
   const { en: dictionary } = decodeTranslationData(payload);
   assert.equal(dictionary.emoji, "中文 🌱 {0}");
   assert.equal(dictionary.empty, "");
