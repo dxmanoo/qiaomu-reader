@@ -26,6 +26,13 @@ test("legacy block zero and PDF page backlinks keep format-specific anchors", ()
   assert.equal(highlightBacklink("V", "a.mobi", { text: "missing anchor" }), "");
 });
 
+test("region note links address one PDF annotation and include the fallback page", () => {
+  const uri = new URL(highlightBacklink("Vault", "Scan (copy).pdf", { kind: "pdf-region", id: "area-2", page: 12 }));
+  assert.equal(uri.searchParams.get("book"), "Scan (copy).pdf");
+  assert.equal(uri.searchParams.get("page"), "12");
+  assert.equal(uri.searchParams.get("highlight"), "area-2");
+});
+
 test("engine highlight jumps use CFI and repaint before dismissing the panel", async () => {
   const calls = [];
   const view = { engine: { goTo: async (value) => calls.push(value), addHighlight: async (...args) => calls.push(args) }, closePanel: () => calls.push("close") };

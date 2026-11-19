@@ -1,10 +1,15 @@
+import { isPdfRegion } from "./pdf-region.js";
+
 // Encode parentheses too: raw CFI ranges otherwise terminate Markdown links.
 const encode = (value) => encodeURIComponent(String(value)).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 
 export function highlightBacklink(vault, book, highlight) {
   if (!book || !highlight) return "";
   const params = { vault, book };
-  if (highlight.cfi) {
+  if (isPdfRegion(highlight) && Number.isInteger(highlight.page) && highlight.page > 0) {
+    params.page = highlight.page;
+    params.highlight = highlight.id;
+  } else if (highlight.cfi) {
     if (highlight.id) params.highlight = highlight.id;
     params.cfi = highlight.cfi;
   } else if (Number.isInteger(highlight.block) && highlight.block >= 0) {

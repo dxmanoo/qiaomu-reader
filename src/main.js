@@ -2908,7 +2908,11 @@ const QiaomuBookReader = class extends Plugin {
   getHighlights(path5) {
     let _a;
     const list = (_a = this.highlights[path5]) != null ? _a : [];
-    return [...list].sort((a, b) => a.block - b.block || a.occ - b.occ);
+    return list.filter((item) => !this._pendingPdfRegionId || item.id !== this._pendingPdfRegionId).sort((a, b) => {
+      const type = Number(isPdfRegion(a)) - Number(isPdfRegion(b));
+      if (type) return type;
+      return isPdfRegion(a) ? a.page - b.page : a.block - b.block || a.occ - b.occ;
+    });
   }
   addHighlight(path5, hl) {
     if (!this.highlights[path5]) this.highlights[path5] = [];
@@ -2919,7 +2923,7 @@ const QiaomuBookReader = class extends Plugin {
     }).then((saved) => { if (!saved) this._reportHighlightSaveError(); });
   }
   addPdfRegion(path, region) {
-    return this._persistHighlights(path, (disk) => insertPdfRegion(disk[path] ||= [], region), region.id);
+    return this._persistHighlights(path, (disk) => insertPdfRegion(disk[path] ||= [], region), { newRegionId: region.id });
   }
   removeHighlight(path5, id) {
     const list = this.highlights[path5];
@@ -2927,7 +2931,7 @@ const QiaomuBookReader = class extends Plugin {
     if (list) this.highlights[path5] = list.filter((h) => h.id !== id);
     return this._persistHighlights(path5, (disk) => {
       if (disk[path5]) disk[path5] = disk[path5].filter((h) => h.id !== id);
-    }, undefined, region).then((saved) => { if (!saved) this._reportHighlightSaveError(); return saved; });
+    }, { reportRegionSync: region }).then((saved) => { if (!saved) this._reportHighlightSaveError(); return saved; });
   }
   async setHighlightComment(path5, id, hl, text) {
     const list = this.highlights[path5] || [];
@@ -2939,7 +2943,7 @@ const QiaomuBookReader = class extends Plugin {
     const saved = await this._persistHighlights(path5, (disk) => {
       const d = (disk[path5] || []).find((x) => x.id === target.id);
       if (d) { if (value) d.comment = value; else delete d.comment; }
-    }, undefined, isPdfRegion(target));
+    }, { reportRegionSync: isPdfRegion(target) });
     if (!saved) {
       this._reportHighlightSaveError();
       return false;
@@ -2958,7 +2962,7 @@ const QiaomuBookReader = class extends Plugin {
         const h = disk[path5].find((x) => x.id === id);
         if (h) h.color = color;
       }
-    }, undefined, list?.some((item) => item.id === id && isPdfRegion(item)))
+    }, { reportRegionSync: list?.some((item) => item.id === id && isPdfRegion(item)) })
       .then((saved) => { if (!saved) this._reportHighlightSaveError(); return saved; });
   }
   _reportHighlightSaveError() {
@@ -2967,24 +2971,27 @@ const QiaomuBookReader = class extends Plugin {
     this._lastHighlightErrorNotice = now;
     new Notice(qiaomuReaderTranslate("could-not-save-the-highlight-it-remains-on-screen-but-may-disapp"), 8000);
   }
-  _persistHighlights(bookPath, applyFn, newRegionId, reportRegionSync) { // serialized: every write waits for the previous one
+  _persistHighlights(bookPath, applyFn, options) { // serialized: every write waits for the previous one
     this._lastBookPath = bookPath;
-    const operation = (this._hlChain || Promise.resolve()).then(() => this._writeHighlightStore(bookPath, applyFn, newRegionId, reportRegionSync));
+    const operation = (this._hlChain || Promise.resolve()).then(() => this._writeHighlightStore(bookPath, applyFn, options));
     this._hlChain = operation.catch(() => {});
     return operation.catch((e) => {
       console.error("Qiaomu Reader: highlight persist failed", e);
       return false;
     });
   }
-  async _writeHighlightStore(bookPath, applyFn, newRegionId, reportRegionSync) {
+  async _writeHighlightStore(bookPath, applyFn, { newRegionId, reportRegionSync } = {}) {
     const disk = await this._readHighlightStore(this._highlightsFilePath());
     applyFn(disk); this._mergeLocalHighlights(bookPath, disk);
     this.highlights = disk;
     if (!newRegionId) this._backupHighlights(bookPath, disk[bookPath] || []);
+    this._pendingPdfRegionId = newRegionId;
     try { await this._saveHighlightsToVault(); }
     catch (error) {
       if (newRegionId) disk[bookPath] = disk[bookPath].filter((item) => item.id !== newRegionId);
       throw error;
+    } finally {
+      this._pendingPdfRegionId = undefined;
     }
     if (newRegionId) this._backupHighlights(bookPath, disk[bookPath] || []);
     await this._saveLocalData();
@@ -4187,6 +4194,57 @@ function readerIsPdf(view) {
 function readerPdfPages(view) {
   return [...(view.pager?.flow?.querySelectorAll(".qiaomu-reader-pdf-page-break[data-pdf-page-no]") || [])];
 }
+function jumpToReaderPdfPage(view, pageNumber) {
+  if (!Number.isInteger(pageNumber) || pageNumber < 1) return null;
+  const { pager } = view;
+  const page = pager?.flow?.querySelector(`[data-pdf-page-no="${pageNumber}"]`);
+  if (!pager?.total || !page) return null;
+  if (pager.scrollMode) {
+    pager.clip.scrollTop += page.getBoundingClientRect().top - pager.clip.getBoundingClientRect().top;
+    pager.spread = Math.min(pager.total - 1, Math.round(pager.clip.scrollTop / (pager.clip.clientHeight || 1)));
+  } else {
+    const cols = pager.cols || 1;
+    const left = page.getBoundingClientRect().left - pager.flow.getBoundingClientRect().left;
+    pager.jumpTo(Math.floor(Math.round(left / (pager.sw / cols)) / cols));
+  }
+  (view.updateUI || view._updateUI).call(view, pager.spread, pager.total);
+  return page;
+}
+async function jumpToPdfRegion(view, record) {
+  const { file, pager } = view;
+  const request = view._pdfRegionJump = {};
+  cancelPdfRegion(view);
+  (view.closePanel || view._closePanel).call(view);
+  const page = jumpToReaderPdfPage(view, record.page);
+  if (!page) return;
+  const { spread } = pager;
+  const win = page.ownerDocument.defaultView;
+  const selector = `[data-pdf-region-id="${CSS.escape(record.id)}"]`;
+  const expires = Date.now() + 15000;
+  while (!view._closed && view._pdfRegionJump === request && view.file === file && view.pager === pager
+      && pager.spread === spread && page.isConnected && Date.now() < expires) {
+    const box = page.querySelector(selector);
+    if (box) {
+      const scroller = pager.scrollMode ? pager.clip : page;
+      const frame = scroller.getBoundingClientRect(), target = box.getBoundingClientRect();
+      if (target.left < frame.left || target.right > frame.right) {
+        scroller.scrollLeft += (target.left + target.right - frame.left - frame.right) / 2;
+      }
+      if (target.top < frame.top || target.bottom > frame.bottom) {
+        scroller.scrollTop += (target.top + target.bottom - frame.top - frame.bottom) / 2;
+      }
+      box.classList.remove("qiaomu-reader-pdf-region-focus");
+      box.getBoundingClientRect();
+      box.classList.add("qiaomu-reader-pdf-region-focus");
+      win.clearTimeout(box._pdfRegionFlashTimer);
+      box._pdfRegionFlashTimer = win.setTimeout(() => box.classList.remove("qiaomu-reader-pdf-region-focus"), 1200);
+      void view.plugin.saveProgress(file.path, pager.spread, pager.total, pager.currentBlockIndex());
+      return;
+    }
+    if (page.querySelector(".qiaomu-reader-pdf-render-error")) break;
+    await new Promise(resolve => win.setTimeout(resolve, 100));
+  }
+}
 function pdfVisiblePageLabel(view, first) {
   const count = readerPdfPages(view).length;
   const columns = view.pager?.scrollMode ? 1 : (view.pager?.cols || 1);
@@ -4264,6 +4322,7 @@ function applyPdfZoom(view, value, point = null, mode = "custom") {
     return;
   }
 
+  if (view._pdfRegion) cancelPdfRegion(view);
   const ratio = next / previous;
   const clip = pager?.clip;
   const pageScrollers = flow && clip ? visiblePdfPageScrollers(view).map((page) => {
@@ -4470,7 +4529,7 @@ function showPdfRegionSyncRetry(plugin, bookPath) {
   const notice = new Notice(fragment, 12000);
   retry.addEventListener("click", () => {
     notice.hide();
-    void plugin._persistHighlights(bookPath, () => {}, undefined, true).then((saved) => {
+    void plugin._persistHighlights(bookPath, () => {}, { reportRegionSync: true }).then((saved) => {
       if (!saved) plugin._reportHighlightSaveError();
     });
   });
@@ -4480,7 +4539,7 @@ function showPdfRegionEditor(view, record, box) {
   view._hideHlPopup();
   const popup = view.contentEl.createDiv("qiaomu-reader-hl-popup qiaomu-reader-hl-popup-on qiaomu-reader-pdf-region-popup");
   const { file, pager } = view;
-  view._pdfRegion = { file, pager, spread: pager.spread, surface: box.parentElement, pointerId: null, popup };
+  view._pdfRegion = { file, pager, spread: pager.spread, firstPage: pager.currentPdfPageNumber(), surface: box.parentElement, pointerId: null, popup };
   const controls = popup.createDiv("qiaomu-reader-hl-actions");
   const position = () => positionHlPopup(view, box.getBoundingClientRect(), 280, 60, popup);
   const repaint = () => {
@@ -4525,7 +4584,7 @@ function showPdfRegionEditor(view, record, box) {
 }
 const pdfRegionViewports = new WeakMap();
 function renderPdfRegionOverlays(view, scope = view.pager.flow) {
-  if (!scope || !readerIsPdf(view)) return;
+  if (!scope || !view.file || !readerIsPdf(view)) return;
   scope.querySelectorAll(".qiaomu-reader-pdf-region-box").forEach((element) => element.remove());
   const records = view.plugin.getHighlights(view.file.path).filter(isPdfRegion);
   for (const record of records) {
@@ -4568,7 +4627,8 @@ function setupPdfRegionSelection(view) {
     doc.getSelection()?.removeAllRanges();
     const preview = surface.createDiv("qiaomu-reader-pdf-region-preview");
     preview.hidden = true;
-    view._pdfRegion = { file: view.file, pager: view.pager, spread: view.pager.spread, surface, pageRect, pointerId, preview, start: [x, y] };
+    const { file, pager } = view;
+    view._pdfRegion = { file, pager, spread: pager.spread, firstPage: pager.currentPdfPageNumber(), surface, pageRect, pointerId, preview, start: [x, y] };
     area.setPointerCapture(pointerId);
   }, true);
   area.addEventListener("pointermove", (event) => {
@@ -11376,23 +11436,10 @@ const ReaderView = class extends ItemView {
   jumpToPdfPageWhenReady(pageNo) { // deep links can land before pagination; poll for the anchor
     let attempts = 0;
     const poll = () => {
-      if (this._jumpToPdfPage(pageNo)) return;
-      if (++attempts > 40) return;
+      if (this._closed || jumpToReaderPdfPage(this, pageNo) || ++attempts > 40) return;
       window.setTimeout(poll, 100);
     };
     poll();
-  }
-  // True once the page anchor exists and the jump has been performed.
-  _jumpToPdfPage(pageNo) {
-    const pane = this.pager && this.pager.flow;
-    if (!pane || !this.pager.total) return false;
-    const anchor = pane.querySelector(`[data-pdf-page-no="${pageNo}"]`);
-    if (!anchor) return false;
-    const offsetX = anchor.getBoundingClientRect().left - pane.getBoundingClientRect().left;
-    const colStride = this.pager.sw / (this.pager.cols || 1);
-    const targetSpread = Math.floor(Math.round(offsetX / colStride) / (this.pager.cols || 1));
-    const [cur, tot] = this.pager.jumpTo(Math.max(0, Math.min(targetSpread, this.pager.total - 1)));
-    (this.updateUI || this._updateUI).call(this, cur, tot); return true;
   }
   jumpToBlockWhenReady(idx) {
     let tries = 0;
@@ -11621,7 +11668,8 @@ const ReaderView = class extends ItemView {
   }
   updateUI(cur, total) {
     const region = this._pdfRegion;
-    if (region && (region.pager !== this.pager || region.spread !== cur || !region.surface.isConnected)) cancelPdfRegion(this);
+    if (region && (region.pager !== this.pager || region.spread !== cur || !region.surface.isConnected
+      || region.firstPage !== this.pager.currentPdfPageNumber())) cancelPdfRegion(this);
     settleReader(this);
     if (this.contentEl) this.contentEl.toggleClass("qiaomu-reader-scrolling", !!(this.pager && this.pager.scrollMode));
     const pct = total > 0 ? Math.round((cur + 1) / total * 100) : 0;
@@ -11893,8 +11941,9 @@ const ReaderView = class extends ItemView {
   }
   async goToHighlight(id) { // panel click: reveal the highlight and flash it
     rememberReaderJump(this);
+    const hl = this.file && this.plugin.getHighlights(this.file.path).find((item) => item.id === id);
+    if (isPdfRegion(hl)) return jumpToPdfRegion(this, hl);
     if (this.engine) {
-      const hl = this.file && this.plugin.getHighlights(this.file.path).find((item) => item.id === id);
       try { await jumpToEngineHighlight(this, hl); }
       catch { new Notice(qiaomuReaderTranslate("highlight-not-found")); }
       return;
@@ -13239,21 +13288,8 @@ const ReaderModal = class extends Modal {
   }
   jumpToPdfPageWhenReady(page) {
     let tries = 0; const tick = () => {
-      const pagerFlow = this.pager && this.pager.flow;
-      if (pagerFlow && this.pager.total) {
-        const el = pagerFlow.querySelector(`[data-pdf-page-no="${page}"]`);
-        if (el) {
-          const offsetX = el.getBoundingClientRect().left - pagerFlow.getBoundingClientRect().left;
-          const colCount = this.pager.cols || 1; const stride = this.pager.sw / colCount;
-          const spread = Math.floor(Math.round(offsetX / stride) / colCount);
-          const clamped = Math.max(0, Math.min(spread, this.pager.total - 1));
-          const [cur, tot] = this.pager.jumpTo(clamped);
-          const notify = this.updateUI || this._updateUI;
-          notify.call(this, cur, tot);
-          return;
-        }
-      }
-      if (++tries > 40) { return; } window.setTimeout(tick, 100);
+      if (this._closed || jumpToReaderPdfPage(this, page) || ++tries > 40) return;
+      window.setTimeout(tick, 100);
     };
     tick();
   }
@@ -13521,10 +13557,12 @@ const ReaderModal = class extends Modal {
   _renderFlowHighlights(scope = this.pager.flow) {
     if (this.engine) { this._renderEngineHighlights(); return; }
     if (!this.file || !this.pager.flow) return;
+    renderPdfRegionOverlays(this, scope);
     unwrapAllHighlights(scope);
     const blocks = this.pager.flow.querySelectorAll(READER_BLOCK_SELECTOR);
     const list = this.plugin.getHighlights(this.file.path);
     for (const hl of list) {
+      if (isPdfRegion(hl)) continue;
       const anchor = resolveHighlightAnchor(blocks, hl, this.file.extension === "pdf");
       if (!anchor || !scope.contains(anchor.block)) continue;
       wrapBlockRange(anchor.block, anchor.loc.start, anchor.loc.start + anchor.loc.len, { id: hl.id, color: hlColorCss(hl.color) });
@@ -13628,6 +13666,7 @@ const ReaderModal = class extends Modal {
     const hl = this.file ? this.plugin.getHighlights(this.file.path).find((h) => h.id === id) : null;
     rememberReaderJump(this);
     if (!hl) return;
+    if (isPdfRegion(hl)) return jumpToPdfRegion(this, hl);
     if (this.engine) {
       try { await jumpToEngineHighlight(this, hl); }
       catch { new Notice(qiaomuReaderTranslate("highlight-not-found")); }

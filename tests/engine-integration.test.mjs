@@ -575,9 +575,11 @@ test("visible PDF pages gain selectable text and offscreen pages collapse back t
   textLayer.className = 'qiaomu-reader-pdf-text-layer';
   textLayer.setAttribute('data-pdf-selectable', 'true');
   textLayer.innerHTML = '<span>selectable</span>';
+  const viewport = { width: 200, height: 300 };
+  const pdfRegionViewports = new WeakMap();
   const lazy = {
     _destroyed: false,
-    render: async () => ({ src: 'data:image/png;base64,page', textLayer }),
+    render: async () => ({ src: 'data:image/png;base64,page', textLayer, viewport }),
     textFor: () => 'fallback',
   };
   const pager = { flow, sw: 600, spread: 0, scrollMode: false };
@@ -587,6 +589,7 @@ test("visible PDF pages gain selectable text and offscreen pages collapse back t
     FIGURE_RENDERING_CLASS: 'rendering',
     FIGURE_LOAD_SPAN: 2, FIGURE_DROP_SPAN: 6,
     figureSpreadGap: () => gap, figurePageNumber: img => Number(img.dataset.pdfPage),
+    pdfRegionViewports,
     markFigureUnavailable: () => assert.fail('page should remain renderable'),
   });
 
@@ -594,10 +597,13 @@ test("visible PDF pages gain selectable text and offscreen pages collapse back t
   assert.equal(flow.querySelector('img').getAttribute('data-loaded'), '1');
   assert.equal(flow.querySelector('.qiaomu-reader-pdf-text-layer').getAttribute('data-pdf-selectable'), 'true');
   assert.equal(flow.querySelectorAll('.qiaomu-reader-pdf-text-layer span').length, 1);
+  const surface = flow.querySelector('.surface');
+  assert.equal(pdfRegionViewports.get(surface), viewport);
 
   gap = 10;
   await sweep(view, lazy);
   assert.equal(flow.querySelector('img').hasAttribute('src'), false);
+  assert.equal(pdfRegionViewports.has(surface), false);
   const collapsed = flow.querySelector('.qiaomu-reader-pdf-text-layer');
   assert.equal(collapsed.classList.contains('qiaomu-reader-pdf-text-placeholder'), true);
   assert.equal(collapsed.getAttribute('data-pdf-selectable'), 'false');
