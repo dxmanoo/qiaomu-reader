@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-import { pdfRegionDrag, pdfRegionToBounds, pdfBoundsToRegion } from "../src/pdf-region.js";
+import { pdfRegionDrag, pdfRegionToBounds, pdfBoundsToRegion, pdfRegionRaster, savePdfRegion, insertPdfRegion } from "../src/pdf-region.js";
 import { footnotePdfBytes } from "./fixtures/pdf-footnotes.mjs";
 
 test("PDF regions clamp to the starting page in either drag direction", () => {
@@ -25,4 +25,37 @@ test("PDF bounds round-trip across zoom and page rotation", async (t) => {
     const differentlySized = { width: original.width / 2, height: original.height / 2 };
     assert.deepEqual(pdfBoundsToRegion(original, bounds, differentlySized), { left: 10, top: 15, width: 40, height: 45 });
   }
+});
+
+test("PDF region raster crops a rotated page at the source and caps its longest edge", async (t) => {
+  const task = getDocument({ data: footnotePdfBytes() });
+  t.after(() => task.destroy());
+  const page = await (await task.promise).getPage(1);
+  const unit = page.getViewport({ scale: 1, rotation: 90 });
+  const rect = { left: 28, top: 52, width: 600, height: 400 };
+  const bounds = pdfRegionToBounds(unit, rect, unit);
+  const crop = pdfRegionRaster(page, bounds, 90, 1000);
+  assert.equal(crop.width, 1000);
+  assert.equal(crop.height, 667);
+  assert.ok(Math.abs(crop.transform[4] + 28 * crop.viewport.scale) < 1e-9);
+  assert.ok(Math.abs(crop.transform[5] + 52 * crop.viewport.scale) < 1e-9);
+});
+
+test("retrying a region save reuses the PNG and the annotation ID", async () => {
+  const created = new Set();
+  const vault = {
+    adapter: { exists: async path => created.has(path) },
+    createFolder: async path => { created.add(path); },
+    createBinary: async path => { created.add(path); },
+  };
+  const record = { id: "test-region", color: "yellow", imagePath: "Qiaomu PDF Annotations/test-region.png" };
+  const rows = [];
+  let captures = 0;
+  const capture = async () => { captures++; return new ArrayBuffer(0); };
+  await assert.rejects(savePdfRegion(vault, record, capture, () => { throw new Error("store unavailable"); }));
+  const persist = async row => { insertPdfRegion(rows, row); return true; };
+  assert.equal(await savePdfRegion(vault, record, capture, persist), true);
+  assert.equal(await savePdfRegion(vault, record, capture, persist), true);
+  assert.deepEqual(rows, [record]);
+  assert.equal(captures, 1);
 });

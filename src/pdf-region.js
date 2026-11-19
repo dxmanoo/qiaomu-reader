@@ -32,3 +32,41 @@ export function pdfBoundsToRegion(viewport, [x1, y1, x2, y2], displayed = viewpo
   };
   return rectBetween(point(x1, y1), point(x2, y2));
 }
+
+export const PDF_REGION_FOLDER = "Qiaomu PDF Annotations";
+
+export function isPdfRegion(record) {
+  return record?.kind === "pdf-region";
+}
+
+export function pdfRegionRaster(page, bounds, rotation, limit = 2048) {
+  const unit = page.getViewport({ scale: 1, rotation });
+  const rect = pdfBoundsToRegion(unit, bounds);
+  const longest = Math.max(rect.width, rect.height);
+  if (!(longest > 0)) throw new Error("Invalid PDF region");
+  const scale = Math.min(3, limit / longest);
+  return {
+    viewport: page.getViewport({ scale, rotation }),
+    width: Math.min(limit, Math.max(1, Math.ceil(rect.width * scale))),
+    height: Math.min(limit, Math.max(1, Math.ceil(rect.height * scale))),
+    transform: [1, 0, 0, 1, -rect.left * scale, -rect.top * scale],
+  };
+}
+
+export async function savePdfRegion(vault, record, capture, persist) {
+  if (!await vault.adapter.exists(record.imagePath)) {
+    const image = await capture();
+    if (!await vault.adapter.exists(PDF_REGION_FOLDER)) {
+      try { await vault.createFolder(PDF_REGION_FOLDER); }
+      catch (error) { if (!await vault.adapter.exists(PDF_REGION_FOLDER)) throw error; }
+    }
+    await vault.createBinary(record.imagePath, image);
+  }
+  return persist(record);
+}
+
+export function insertPdfRegion(rows, record) {
+  const index = rows.findIndex(row => row.id === record.id);
+  if (index < 0) rows.push(record);
+  else rows[index] = { ...rows[index], color: record.color };
+}

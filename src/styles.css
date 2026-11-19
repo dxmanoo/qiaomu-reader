@@ -1202,7 +1202,12 @@ img.qiaomu-reader-pdf-lazy:not([data-loaded="1"]) { background:color-mix(in srgb
 .qiaomu-reader-pdf-zoom-step[aria-pressed="true"], .qiaomu-reader-focus-toggle[aria-pressed="true"] { color: var(--qiaomu-reader-accent); background: var(--background-modifier-hover); }
 .qiaomu-reader-pdf-region-mode .qiaomu-reader-pdf-page-surface,
 .qiaomu-reader-pdf-region-mode .qiaomu-reader-pdf-page-surface * { cursor:crosshair; user-select:none; }
-.qiaomu-reader-pdf-region-preview { position:absolute; z-index:3; pointer-events:none; border:1px solid var(--interactive-accent); background:color-mix(in srgb, var(--interactive-accent) 22%, transparent); }
+.qiaomu-reader-pdf-region-preview,
+.qiaomu-reader-pdf-region-box { position:absolute; z-index:3; pointer-events:none; box-sizing:border-box; }
+.qiaomu-reader-pdf-region-preview { border:1px solid var(--interactive-accent); background:color-mix(in srgb, var(--interactive-accent) 22%, transparent); }
+.qiaomu-reader-pdf-region-box { border:2px solid currentColor; }
+.qiaomu-reader-pdf-region-status:empty { display:none; }
+.qiaomu-reader-pdf-region-status { padding-top:6px; font-size:var(--font-ui-small); }
 /* While focus mode retracts the HUD, only the exit control stays reachable. */
 .qiaomu-reader-reading-focus .qiaomu-reader-top:focus-within { opacity: 1; transform: none; pointer-events: auto; }
 .qiaomu-reader-focus-exit { display: none; }
