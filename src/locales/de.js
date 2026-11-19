@@ -7,6 +7,7 @@ export default {
   ...ABOUT_TEXT.de,
   ...SHELF_TEXT.de,
   ...EBOOK_TEXT.de,
+  "pdf-region-shortcut-0": "Bereichsanmerkung ({0} + Ziehen)",
   "pdf-region-note-added": "Zur Lesenotiz hinzugefügt.",
   "pdf-region-note-failed": "Anmerkung gespeichert. Die Lesenotiz konnte nicht aktualisiert werden.",
   "pdf-region-return-to-source": "Zur Quelle",

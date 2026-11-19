@@ -7,6 +7,7 @@ export default {
   ...ABOUT_TEXT.pt,
   ...SHELF_TEXT.pt,
   ...EBOOK_TEXT.pt,
+  "pdf-region-shortcut-0": "Anotação de área ({0} + arrastar)",
   "pdf-region-note-added": "Adicionada à nota de leitura.",
   "pdf-region-note-failed": "Anotação salva. Não foi possível atualizar a nota de leitura.",
   "pdf-region-return-to-source": "Voltar à fonte",

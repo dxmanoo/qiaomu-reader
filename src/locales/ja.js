@@ -7,6 +7,7 @@ export default {
   ...ABOUT_TEXT.ja,
   ...SHELF_TEXT.ja,
   ...EBOOK_TEXT.ja,
+  "pdf-region-shortcut-0": "領域注釈（{0} ＋ ドラッグ）",
   "pdf-region-note-added": "読書ノートに追加しました。",
   "pdf-region-note-failed": "注釈は保存されました。読書ノートを更新できませんでした。",
   "pdf-region-return-to-source": "原文に戻る",

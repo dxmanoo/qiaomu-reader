@@ -7,6 +7,7 @@ export default {
   ...ABOUT_TEXT.fr,
   ...SHELF_TEXT.fr,
   ...EBOOK_TEXT.fr,
+  "pdf-region-shortcut-0": "Annotation de zone ({0} + glisser)",
   "pdf-region-note-added": "Ajoutée à la note de lecture.",
   "pdf-region-note-failed": "Annotation enregistrée. Impossible de mettre à jour la note de lecture.",
   "pdf-region-return-to-source": "Retour à la source",

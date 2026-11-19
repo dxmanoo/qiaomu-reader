@@ -9,6 +9,7 @@ export const QIAOMU_READER_ZH_CN = {
   ...ABOUT_TEXT.zh,
   ...SHELF_TEXT.zh,
   ...EBOOK_TEXT.zh,
+  "pdf-region-shortcut-0": "区域批注（{0} + 拖动）",
   "pdf-region-note-added": "已添加到阅读笔记。",
   "pdf-region-note-failed": "批注已保存，阅读笔记同步失败。",
   "pdf-region-return-to-source": "返回原文",

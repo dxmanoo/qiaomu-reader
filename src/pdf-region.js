@@ -16,6 +16,26 @@ export function pdfRegionDrag(page, start, end, minimum = 10) {
   return rect.width > minimum && rect.height > minimum ? rect : null;
 }
 
+export function isPdfRegionShortcut(event, mac) {
+  return event.button <= 0 && event.pointerType !== "touch" && !event.altKey && !event.ctrlKey
+    && (mac ? event.metaKey && !event.shiftKey : event.shiftKey && !event.metaKey);
+}
+
+export function pdfRegionResize(page, region, edge, [dx, dy]) {
+  const horizontal = edge === "left" || edge === "right";
+  const origin = horizontal ? "left" : "top";
+  const size = horizontal ? "width" : "height";
+  const start = region[origin], length = region[size], end = start + length;
+  const minimum = Math.min(10, length);
+  const delta = horizontal ? dx : dy;
+  if (edge === origin) {
+    const next = Math.min(end - minimum, Math.max(0, start + delta));
+    return next === start ? region : { ...region, [origin]: next, [size]: end - next };
+  }
+  const next = Math.max(start + minimum, Math.min(page[size], end + delta));
+  return next === end ? region : { ...region, [size]: next - start };
+}
+
 export function pdfRegionToBounds(viewport, rect, displayed) {
   const point = (x, y) => viewport.convertToPdfPoint(
     x * viewport.width / displayed.width,
@@ -69,4 +89,12 @@ export function insertPdfRegion(rows, record) {
   const index = rows.findIndex(row => row.id === record.id);
   if (index < 0) rows.push(record);
   else rows[index] = { ...rows[index], color: record.color };
+}
+
+export function replacePdfRegionGeometry(rows, original, replacement) {
+  const index = rows.findIndex((row) => row.id === original.id && isPdfRegion(row));
+  const current = rows[index];
+  if (current?.imagePath === replacement.imagePath) return;
+  if (!current || current.imagePath !== original.imagePath) throw new Error("PDF region changed");
+  rows[index] = { ...current, bounds: replacement.bounds, imagePath: replacement.imagePath };
 }

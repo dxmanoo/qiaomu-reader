@@ -7,6 +7,7 @@ export default {
   ...ABOUT_TEXT.ko,
   ...SHELF_TEXT.ko,
   ...EBOOK_TEXT.ko,
+  "pdf-region-shortcut-0": "영역 주석 ({0} + 드래그)",
   "pdf-region-note-added": "독서 노트에 추가했습니다.",
   "pdf-region-note-failed": "주석을 저장했지만 독서 노트를 업데이트하지 못했습니다.",
   "pdf-region-return-to-source": "원문으로 돌아가기",

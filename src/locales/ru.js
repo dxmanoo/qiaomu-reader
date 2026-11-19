@@ -9,6 +9,7 @@ export default {
   ...ABOUT_TEXT.ru,
   ...SHELF_TEXT.ru,
   ...EBOOK_TEXT.ru,
+  "pdf-region-shortcut-0": "Аннотация области ({0} + перетаскивание)",
   "pdf-region-note-added": "Добавлено в заметку о чтении.",
   "pdf-region-note-failed": "Аннотация сохранена. Не удалось обновить заметку о чтении.",
   "pdf-region-return-to-source": "Вернуться к источнику",

@@ -1200,12 +1200,22 @@ img.qiaomu-reader-pdf-lazy:not([data-loaded="1"]) { background:color-mix(in srgb
 .qiaomu-reader-pdf-document .qiaomu-reader-clip, .qiaomu-reader-pdf-page-break { overflow-anchor: none; }
 .qiaomu-reader-pdf-document.qiaomu-reader-pdf-pan .qiaomu-reader-pdf-page-break:active, .qiaomu-reader-pdf-document.qiaomu-reader-pdf-pan .qiaomu-reader-pdf-text-layer:active { cursor: grabbing; }
 .qiaomu-reader-pdf-zoom-step[aria-pressed="true"], .qiaomu-reader-focus-toggle[aria-pressed="true"] { color: var(--qiaomu-reader-accent); background: var(--background-modifier-hover); }
-.qiaomu-reader-pdf-region-mode .qiaomu-reader-pdf-page-surface,
-.qiaomu-reader-pdf-region-mode .qiaomu-reader-pdf-page-surface * { cursor:crosshair; user-select:none; }
+:is(.qiaomu-reader-pdf-region-mode,.qiaomu-reader-pdf-region-quick) .qiaomu-reader-pdf-page-surface,
+:is(.qiaomu-reader-pdf-region-mode,.qiaomu-reader-pdf-region-quick) .qiaomu-reader-pdf-page-surface * { cursor:crosshair; user-select:none; }
 .qiaomu-reader-pdf-region-preview,
 .qiaomu-reader-pdf-region-box { position:absolute; z-index:3; pointer-events:none; box-sizing:border-box; }
 .qiaomu-reader-pdf-region-preview { border:1px solid var(--interactive-accent); background:color-mix(in srgb, var(--interactive-accent) 22%, transparent); }
 .qiaomu-reader-pdf-page-surface button.qiaomu-reader-pdf-region-box { border:2px solid currentColor; min-width:0; padding:0; background:transparent; box-shadow:none; }
+.qiaomu-reader-pdf-region-resizing { opacity:.35; }
+.qiaomu-reader-pdf-region-edge { position:absolute; pointer-events:auto; }
+.qiaomu-reader-pdf-region-edge:is([data-region-edge="left"], [data-region-edge="right"]) { top:0; bottom:0; width:6px; cursor:ew-resize; }
+.qiaomu-reader-pdf-region-edge:is([data-region-edge="top"], [data-region-edge="bottom"]) { left:0; right:0; height:6px; cursor:ns-resize; }
+.qiaomu-reader-pdf-region-edge[data-region-edge="left"] { left:-2px; }
+.qiaomu-reader-pdf-region-edge[data-region-edge="right"] { right:-2px; }
+.qiaomu-reader-pdf-region-edge[data-region-edge="top"] { top:-2px; }
+.qiaomu-reader-pdf-region-edge[data-region-edge="bottom"] { bottom:-2px; }
+.qiaomu-reader-pdf-region-edge:hover { background:currentColor; }
+:is(.qiaomu-reader-pdf-pan, .qiaomu-reader-pdf-region-mode, .qiaomu-reader-pdf-region-quick) .qiaomu-reader-pdf-region-edge { pointer-events:none; }
 .qiaomu-reader-pdf-region-box:focus-visible { outline:2px solid var(--interactive-accent); outline-offset:-2px; }
 .qiaomu-reader-pdf-region-focus { animation:qiaomu-reader-pdf-region-flash 1.2s ease; }
 @keyframes qiaomu-reader-pdf-region-flash { 20%, 65% { outline:3px solid var(--interactive-accent); outline-offset:-3px; } }

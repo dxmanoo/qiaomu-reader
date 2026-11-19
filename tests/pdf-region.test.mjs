@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-import { pdfRegionDrag, pdfRegionToBounds, pdfBoundsToRegion, pdfRegionRaster, savePdfRegion, insertPdfRegion } from "../src/pdf-region.js";
+import { pdfRegionDrag, pdfRegionToBounds, pdfBoundsToRegion, pdfRegionRaster, savePdfRegion, insertPdfRegion, isPdfRegionShortcut, pdfRegionResize, replacePdfRegionGeometry } from "../src/pdf-region.js";
 import { footnotePdfBytes } from "./fixtures/pdf-footnotes.mjs";
 import { pdfRegionNoteRow, replaceManagedReadingHighlights } from "../src/reading-note.js";
 
@@ -71,4 +71,35 @@ test("a region embeds its image without quote text and leaves manual note sectio
   assert.match(withRegion, /\*\*Comment:\*\* Diagram/);
   const removed = replaceManagedReadingHighlights(withRegion, "", "Legacy excerpts");
   assert.equal(removed, "# Reading\n\n## My excerpts\n\n> Manual excerpt\n\n## Notes\n\nHandwritten notes\n");
+});
+
+test("desktop region shortcut matches the platform and leaves other modifiers available", () => {
+  const event = { button: 0, pointerType: "mouse", metaKey: true, shiftKey: false, ctrlKey: false, altKey: false };
+  assert.equal(isPdfRegionShortcut(event, true), true);
+  assert.equal(isPdfRegionShortcut(event, false), false);
+  assert.equal(isPdfRegionShortcut({ ...event, metaKey: false, shiftKey: true }, false), true);
+  assert.equal(isPdfRegionShortcut({ ...event, pointerType: "touch" }, true), false);
+  assert.equal(isPdfRegionShortcut({ ...event, button: 1 }, true), false);
+  assert.equal(isPdfRegionShortcut({ ...event, altKey: true }, true), false);
+});
+
+test("resizing one edge clamps to the page and keeps the opposite edge fixed", () => {
+  const page = { width: 100, height: 80 };
+  const rect = { left: 20, top: 15, width: 50, height: 40 };
+  assert.deepEqual(pdfRegionResize(page, rect, "left", [-50, 42]), { ...rect, left: 0, width: 70 });
+  assert.deepEqual(pdfRegionResize(page, rect, "right", [80, -42]), { ...rect, width: 80 });
+  assert.deepEqual(pdfRegionResize(page, rect, "top", [30, 70]), { ...rect, top: 45, height: 10 });
+  assert.deepEqual(pdfRegionResize(page, rect, "bottom", [30, -80]), { ...rect, height: 10 });
+  assert.deepEqual(pdfRegionResize(page, rect, "bottom", [30, 0]), rect);
+});
+
+test("replacing region geometry keeps its identity and newer metadata and is safe to retry", () => {
+  const original = { id: "area-1", page: 2, kind: "pdf-region", imagePath: "old.png", color: "yellow", bounds: [1, 2, 3, 4] };
+  const replacement = { ...original, imagePath: "new.png", bounds: [0, 2, 3, 4] };
+  const rows = [{ ...original, comment: "newer comment", color: "green" }];
+  replacePdfRegionGeometry(rows, original, replacement);
+  replacePdfRegionGeometry(rows, original, replacement);
+  assert.deepEqual(rows, [{ ...replacement, comment: "newer comment", color: "green" }]);
+  assert.throws(() => replacePdfRegionGeometry(rows, original, { ...replacement, imagePath: "conflict.png" }));
+  assert.throws(() => replacePdfRegionGeometry([], original, replacement));
 });
