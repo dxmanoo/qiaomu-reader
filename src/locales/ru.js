@@ -9,6 +9,7 @@ export default {
   ...ABOUT_TEXT.ru,
   ...SHELF_TEXT.ru,
   ...EBOOK_TEXT.ru,
+  "pdf-region-annotation": "Аннотация области",
   "ai-connect-account-or-key": "Подключите аккаунт или введите API-ключ и пройдите проверку, чтобы начать работу с ИИ.",
   "library-remove": "Убрать из библиотеки",
   "library-removed": "«{0}» убрано. Файл и записи чтения сохранены.",

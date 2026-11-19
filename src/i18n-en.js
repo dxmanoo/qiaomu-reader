@@ -7,6 +7,7 @@ export const QIAOMU_READER_EN = {
   ...ABOUT_TEXT.en,
   ...SHELF_TEXT.en,
   ...EBOOK_TEXT.en,
+  "pdf-region-annotation": "Area annotation",
   "ai-connect-account-or-key": "Connect an account or enter an API key, then finish the test to start using AI.",
   "library-remove": "Remove from library",
   "library-removed": "Removed “{0}” from the library. File and reading records kept.",

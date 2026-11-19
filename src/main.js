@@ -33,6 +33,7 @@ import { HL_COLOR_SWATCHES } from "./highlight-colors.js";
 import { AbstractInputSuggest, Component, FuzzySuggestModal, ItemView, MarkdownView, MarkdownRenderer, Menu, Modal, Notice, Platform, Plugin, PluginSettingTab, Scope, SecretComponent, Setting, TFile, TFolder, normalizePath, parseYaml, requestUrl, setIcon } from "obsidian";
 import { EpubEngine, ENGINE_EXTENSIONS, coverFromBytes, readBookMetadata } from "./reader-engine.js";
 import { bindReaderPageKeys } from "./reader-keyboard.js";
+import { pdfRegionDrag } from "./pdf-region.js";
 import { coverPalette, migrateCoverCache } from "./book-cover.js";
 import { bookMetadata, catalogMetadata, vaultCatalog } from "./book-catalog.js";
 import { showBookOwnership } from "./book-ownership-ui.js";
@@ -1102,6 +1103,7 @@ function readerOwnsKeyEvent(view, event) {
 
 // Zoom gestures and immersive chrome behave the same in both reader hosts.
 function wireReaderChrome(view, root) {
+  if (view.pdfRegionButton) setupPdfRegionSelection(view);
   setupPdfZoomInteractions(view);
   setupImmersiveChrome(view, root);
 }
@@ -4213,6 +4215,7 @@ function openReaderPagePicker(view) {
 function syncPdfZoomControls(view) {
   const isPdf = readerIsPdf(view);
   const zoom = clampPdfZoom(view?.pdfZoom);
+  if (view.pdfRegionButton) view.pdfRegionButton.disabled = !isPdf || !view.pager?.total;
   if (view?.contentEl) view.contentEl.toggleClass("qiaomu-reader-pdf-document", isPdf);
   if (view?.pdfZoomLabelEl) {
     const label = pdfZoomPercent(zoom);
@@ -4298,6 +4301,7 @@ function fitPdfWidth(view) {
   if (width) applyPdfZoom(view, Math.max(1, (page.clientWidth - 4) / width), null, "width");
 }
 function setPdfPanMode(view, enabled) {
+  if (enabled) cancelPdfRegion(view);
   view.pdfPanMode = enabled;
   view.contentEl?.toggleClass("qiaomu-reader-pdf-pan", enabled);
   view.pdfPanButton?.setAttribute("aria-pressed", String(enabled));
@@ -4350,8 +4354,123 @@ function createPdfZoomControls(parent, view) {
   setIcon(pan, "hand");
   pan.addEventListener("click", () => setPdfPanMode(view, !view.pdfPanMode));
   view.pdfPanButton = pan;
+  if (Platform.isDesktopApp) {
+    const region = group.createEl("button", {
+      cls: "qiaomu-reader-pdf-zoom-step",
+      attr: { type: "button", "aria-label": qiaomuReaderTranslate("pdf-region-annotation"), "aria-pressed": "false" },
+    });
+    setIcon(region, "scan");
+    view.pdfRegionButton = region;
+    region.addEventListener("click", () => {
+      const enabled = region.getAttribute("aria-pressed") !== "true";
+      cancelPdfRegion(view);
+      if (enabled) {
+        setPdfPanMode(view, false);
+        setPdfRegionMode(view, true);
+      }
+    });
+  }
   syncPdfZoomControls(view);
   return group;
+}
+function setPdfRegionMode(view, enabled) {
+  view.pdfRegionButton?.setAttribute("aria-pressed", String(enabled));
+  view.areaEl?.classList.toggle("qiaomu-reader-pdf-region-mode", enabled);
+}
+function cancelPdfRegion(view, focus = false) {
+  const current = view._pdfRegion;
+  view._pdfRegion = null;
+  setPdfRegionMode(view, false);
+  if (!current) return;
+  current.preview.remove();
+  current.popup?.remove();
+  if (view.areaEl.hasPointerCapture(current.pointerId)) view.areaEl.releasePointerCapture(current.pointerId);
+  if (focus) view.pdfRegionButton?.focus({ preventScroll: true });
+}
+function positionPdfRegionBox(element, region, page) {
+  const { width, height } = page;
+  Object.assign(element.style, {
+    left: `${100 * region.left / width}%`, top: `${100 * region.top / height}%`,
+    width: `${100 * region.width / width}%`, height: `${100 * region.height / height}%`,
+  });
+}
+function showPdfRegionConfirmation(view, region) {
+  const popup = region.popup = view.contentEl.createDiv("qiaomu-reader-hl-popup qiaomu-reader-hl-popup-on qiaomu-reader-pdf-region-popup");
+  const cancel = popup.createEl("button", { text: qiaomuReaderTranslate("cancel"), attr: { type: "button" } });
+  cancel.addEventListener("click", () => cancelPdfRegion(view, true));
+  positionHlPopup(view, region.preview.getBoundingClientRect(), 180, 44, popup);
+  cancel.focus({ preventScroll: true });
+}
+function setupPdfRegionSelection(view) {
+  const area = view.areaEl;
+  const doc = docOf(area);
+  let suppressClick = false;
+  const draw = (region, event, minimum) => {
+    const rect = pdfRegionDrag(region.pageRect, region.start, [event.clientX, event.clientY], minimum);
+    region.preview.hidden = !rect;
+    if (rect) positionPdfRegionBox(region.preview, rect, region.pageRect);
+    return rect;
+  };
+  area.addEventListener("pointerdown", (event) => {
+    suppressClick = false;
+    if (event.button !== 0 || event.pointerType === "touch" || !area.classList.contains("qiaomu-reader-pdf-region-mode")) return;
+    const surface = event.target.closest?.(".qiaomu-reader-pdf-page-surface");
+    const image = surface?.querySelector(".qiaomu-reader-pdf-page-img");
+    if (image?.getAttribute(FIGURE_LOADED_ATTR) !== "1" || !image.naturalWidth) return;
+    const pageRect = image.getBoundingClientRect();
+    const { clientX: x, clientY: y, pointerId } = event;
+    if (x < pageRect.left || x > pageRect.right || y < pageRect.top || y > pageRect.bottom) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    view._hideHlPopup();
+    doc.getSelection()?.removeAllRanges();
+    const preview = surface.createDiv("qiaomu-reader-pdf-region-preview");
+    preview.hidden = true;
+    view._pdfRegion = { file: view.file, pager: view.pager, spread: view.pager.spread, surface, pageRect, pointerId, preview, start: [x, y] };
+    area.setPointerCapture(pointerId);
+  }, true);
+  area.addEventListener("pointermove", (event) => {
+    const region = view._pdfRegion;
+    if (region?.pointerId === event.pointerId) draw(region, event, 0);
+  });
+  area.addEventListener("pointerup", (event) => {
+    const region = view._pdfRegion;
+    if (region?.pointerId !== event.pointerId) return;
+    event.stopImmediatePropagation();
+    suppressClick = true;
+    region.pointerId = null;
+    const rect = draw(region, event);
+    if (!rect) {
+      region.preview.remove();
+      view._pdfRegion = null;
+      return;
+    }
+    region.rect = rect;
+    setPdfRegionMode(view, false);
+    showPdfRegionConfirmation(view, region);
+  }, true);
+  for (const type of ["lostpointercapture", "pointercancel"]) {
+    area.addEventListener(type, (event) => {
+      if (view._pdfRegion?.pointerId === event.pointerId) cancelPdfRegion(view);
+    });
+  }
+  area.addEventListener("click", (event) => {
+    if (!suppressClick && !area.classList.contains("qiaomu-reader-pdf-region-mode")) return;
+    suppressClick = false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+  view.registerDomEvent(doc, "pointerdown", (event) => {
+    const region = view._pdfRegion;
+    if (region?.popup && !region.popup.contains(event.target)) cancelPdfRegion(view);
+  }, true);
+  view.registerDomEvent(doc, "keydown", (event) => {
+    if (event.key !== "Escape" || !readerOwnsKeyEvent(view, event)) return;
+    if (!view._pdfRegion && !area.classList.contains("qiaomu-reader-pdf-region-mode")) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    cancelPdfRegion(view, true);
+  }, true);
 }
 function createPdfZoomSettings(parent, view) {
   const row = parent.createDiv("qiaomu-reader-sz-row qiaomu-reader-pdf-zoom-settings");
@@ -5231,8 +5350,7 @@ function qiaomuReaderIsMobile(app) {
   } catch { /* optional step; a failure here must not interrupt reading */ }
   return !!(app && app.isMobile);
 }
-function positionHlPopup(view, anchorRect, estW, estH) {
-  const { hlPopup: pop } = view;
+function positionHlPopup(view, anchorRect, estW, estH, pop = view.hlPopup) {
   const { contentEl: root } = view;
   pop.style.maxWidth = `${Math.max(120, root.clientWidth - 16)}px`;
   if (qiaomuReaderIsMobile(view.app)) {
@@ -10799,6 +10917,7 @@ const ReaderView = class extends ItemView {
     }
   }
   _resetBookState(file) {
+    cancelPdfRegion(this);
     this.file = file; this.ext = file.extension;
     this.locEl?.setText(""); this.pctEl?.setText("0%");
     if (this.pbarFill) this.pbarFill.style.removeProperty("width");
@@ -11298,6 +11417,8 @@ const ReaderView = class extends ItemView {
     exportHighlightsMenu(this.app, this.plugin, this.file, list, evt);
   }
   updateUI(cur, total) {
+    const region = this._pdfRegion;
+    if (region && (region.pager !== this.pager || region.spread !== cur || !region.surface.isConnected)) cancelPdfRegion(this);
     settleReader(this);
     if (this.contentEl) this.contentEl.toggleClass("qiaomu-reader-scrolling", !!(this.pager && this.pager.scrollMode));
     const pct = total > 0 ? Math.round((cur + 1) / total * 100) : 0;
@@ -11627,6 +11748,7 @@ const ReaderView = class extends ItemView {
   }
   async onClose() {
     this._loadCoordinator.cancel();
+    cancelPdfRegion(this);
     this._ttsCleanup?.();
     this._closed = true;
     this._resizeObs?.disconnect();

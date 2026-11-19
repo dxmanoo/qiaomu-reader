@@ -7,6 +7,7 @@ export default {
   ...ABOUT_TEXT.pt,
   ...SHELF_TEXT.pt,
   ...EBOOK_TEXT.pt,
+  "pdf-region-annotation": "Anotação de área",
   "ai-connect-account-or-key": "Conecte uma conta ou insira uma chave de API e conclua o teste para usar a IA.",
   "library-remove": "Remover da biblioteca",
   "library-removed": "“{0}” removido. Arquivo e registros de leitura preservados.",

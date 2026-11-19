@@ -1200,6 +1200,9 @@ img.qiaomu-reader-pdf-lazy:not([data-loaded="1"]) { background:color-mix(in srgb
 .qiaomu-reader-pdf-document .qiaomu-reader-clip, .qiaomu-reader-pdf-page-break { overflow-anchor: none; }
 .qiaomu-reader-pdf-document.qiaomu-reader-pdf-pan .qiaomu-reader-pdf-page-break:active, .qiaomu-reader-pdf-document.qiaomu-reader-pdf-pan .qiaomu-reader-pdf-text-layer:active { cursor: grabbing; }
 .qiaomu-reader-pdf-zoom-step[aria-pressed="true"], .qiaomu-reader-focus-toggle[aria-pressed="true"] { color: var(--qiaomu-reader-accent); background: var(--background-modifier-hover); }
+.qiaomu-reader-pdf-region-mode .qiaomu-reader-pdf-page-surface,
+.qiaomu-reader-pdf-region-mode .qiaomu-reader-pdf-page-surface * { cursor:crosshair; user-select:none; }
+.qiaomu-reader-pdf-region-preview { position:absolute; z-index:3; pointer-events:none; border:1px solid var(--interactive-accent); background:color-mix(in srgb, var(--interactive-accent) 22%, transparent); }
 /* While focus mode retracts the HUD, only the exit control stays reachable. */
 .qiaomu-reader-reading-focus .qiaomu-reader-top:focus-within { opacity: 1; transform: none; pointer-events: auto; }
 .qiaomu-reader-focus-exit { display: none; }
