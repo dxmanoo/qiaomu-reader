@@ -3,6 +3,7 @@ import test from "node:test";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { pdfRegionDrag, pdfRegionToBounds, pdfBoundsToRegion, pdfRegionRaster, savePdfRegion, insertPdfRegion } from "../src/pdf-region.js";
 import { footnotePdfBytes } from "./fixtures/pdf-footnotes.mjs";
+import { pdfRegionNoteRow, replaceManagedReadingHighlights } from "../src/reading-note.js";
 
 test("PDF regions clamp to the starting page in either drag direction", () => {
   const page = { left: 10, top: 30, width: 100, height: 200 };
@@ -58,4 +59,16 @@ test("retrying a region save reuses the PNG and the annotation ID", async () => 
   assert.equal(await savePdfRegion(vault, record, capture, persist), true);
   assert.deepEqual(rows, [record]);
   assert.equal(captures, 1);
+});
+
+test("a region embeds its image without quote text and leaves manual note sections intact", () => {
+  const image = "![[Qiaomu PDF Annotations/region.png]]";
+  const row = pdfRegionNoteRow(image, "Page 2", "[Return to source](obsidian://qiaomu-reader?page=2)", "\n\n**Comment:** Diagram");
+  const original = "# Reading\n\n## Quotes\n\nOld snippet\n\n## My excerpts\n\n> Manual excerpt\n\n## Notes\n\nHandwritten notes\n";
+  const withRegion = replaceManagedReadingHighlights(original, "## Quotes\n\n" + row, "Legacy excerpts");
+  assert.match(withRegion, /!\[\[Qiaomu PDF Annotations\/region.png\]\]/);
+  assert.match(withRegion, /Page 2 · \[Return to source\]/);
+  assert.match(withRegion, /\*\*Comment:\*\* Diagram/);
+  const removed = replaceManagedReadingHighlights(withRegion, "", "Legacy excerpts");
+  assert.equal(removed, "# Reading\n\n## My excerpts\n\n> Manual excerpt\n\n## Notes\n\nHandwritten notes\n");
 });

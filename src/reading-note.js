@@ -14,6 +14,10 @@ export function isReadingHighlightsHeading(line) {
   return matches;
 }
 
+export function pdfRegionNoteRow(image, pageLabel, backlink, comment) {
+  return `${image}\n\n${[pageLabel, backlink].filter(Boolean).join(" · ")}${comment}`;
+}
+
 function headingRanges(text, headingPattern) {
   const headings = [];
   headingPattern.lastIndex = 0;
