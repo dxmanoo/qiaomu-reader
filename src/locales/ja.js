@@ -7,6 +7,7 @@ export default {
   ...ABOUT_TEXT.ja,
   ...SHELF_TEXT.ja,
   ...EBOOK_TEXT.ja,
+  "pdf-region-update-image": "画像を更新",
   "pdf-region-shortcut-0": "領域注釈（{0} ＋ ドラッグ）",
   "pdf-region-note-added": "読書ノートに追加しました。",
   "pdf-region-note-failed": "注釈は保存されました。読書ノートを更新できませんでした。",

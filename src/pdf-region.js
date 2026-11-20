@@ -36,6 +36,12 @@ export function pdfRegionResize(page, region, edge, [dx, dy]) {
   return next === end ? region : { ...region, [size]: next - start };
 }
 
+export function pdfRegionMove(page, region, [dx, dy]) {
+  const left = Math.max(0, Math.min(region.left + dx, page.width - region.width));
+  const top = Math.max(0, Math.min(region.top + dy, page.height - region.height));
+  return left === region.left && top === region.top ? region : { ...region, left, top };
+}
+
 export function pdfRegionToBounds(viewport, rect, displayed) {
   const point = (x, y) => viewport.convertToPdfPoint(
     x * viewport.width / displayed.width,
@@ -54,6 +60,38 @@ export function pdfBoundsToRegion(viewport, [x1, y1, x2, y2], displayed = viewpo
 }
 
 export const PDF_REGION_FOLDER = "ObsReader PDF Annotations";
+
+export function pdfRegionSnapshot(sourcePath, record, rotation) {
+  return {
+    annotationId: record.id, sourcePath, page: record.page,
+    bounds: [...record.bounds], rotation, capturedAt: new Date().toISOString(),
+  };
+}
+
+export function embedPdfRegionSnapshot(png, snapshot) {
+  const image = ArrayBuffer.isView(png)
+    ? new Uint8Array(png.buffer, png.byteOffset, png.byteLength)
+    : new Uint8Array(png);
+  // Insert international text following the fixed-length IHDR chunk.
+  const offset = 33;
+  const text = new TextEncoder().encode("ObsReader\0\0\0\0\0" + JSON.stringify(snapshot));
+  const chunk = new Uint8Array(text.length + 12);
+  const header = new DataView(chunk.buffer);
+  header.setUint32(0, text.length);
+  chunk.set([105, 84, 88, 116], 4); // iTXt
+  chunk.set(text, 8);
+  let crc = 0xffffffff;
+  for (const byte of chunk.subarray(4, -4)) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  header.setUint32(chunk.length - 4, crc ^ 0xffffffff);
+  const result = new Uint8Array(image.length + chunk.length);
+  result.set(image.subarray(0, offset));
+  result.set(chunk, offset);
+  result.set(image.subarray(offset), offset + chunk.length);
+  return result.buffer;
+}
 
 export function isPdfRegion(record) {
   return record?.kind === "pdf-region";
@@ -75,14 +113,20 @@ export function pdfRegionRaster(page, bounds, rotation, limit = 2048) {
 
 export async function savePdfRegion(vault, record, capture, persist) {
   if (!await vault.adapter.exists(record.imagePath)) {
-    const image = await capture();
-    if (!await vault.adapter.exists(PDF_REGION_FOLDER)) {
-      try { await vault.createFolder(PDF_REGION_FOLDER); }
-      catch (error) { if (!await vault.adapter.exists(PDF_REGION_FOLDER)) throw error; }
-    }
-    await vault.createBinary(record.imagePath, image);
+    await writePdfRegionImage(vault, record.imagePath, await capture());
   }
   return persist(record);
+}
+
+export async function writePdfRegionImage(vault, path, image) {
+  const file = vault.getFileByPath(path);
+  if (file) return vault.modifyBinary(file, image);
+  const folder = path.slice(0, path.lastIndexOf("/"));
+  if (!await vault.adapter.exists(folder)) {
+    try { await vault.createFolder(folder); }
+    catch (error) { if (!await vault.adapter.exists(folder)) throw error; }
+  }
+  return vault.createBinary(path, image);
 }
 
 export function insertPdfRegion(rows, record) {
@@ -91,10 +135,9 @@ export function insertPdfRegion(rows, record) {
   else rows[index] = { ...rows[index], color: record.color };
 }
 
-export function replacePdfRegionGeometry(rows, original, replacement) {
+export function replacePdfRegionGeometry(rows, original, bounds) {
   const index = rows.findIndex((row) => row.id === original.id && isPdfRegion(row));
   const current = rows[index];
-  if (current?.imagePath === replacement.imagePath) return;
   if (!current || current.imagePath !== original.imagePath) throw new Error("PDF region changed");
-  rows[index] = { ...current, bounds: replacement.bounds, imagePath: replacement.imagePath };
+  rows[index] = { ...current, bounds };
 }

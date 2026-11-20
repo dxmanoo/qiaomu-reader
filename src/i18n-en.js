@@ -7,6 +7,7 @@ export const QIAOMU_READER_EN = {
   ...ABOUT_TEXT.en,
   ...SHELF_TEXT.en,
   ...EBOOK_TEXT.en,
+  "pdf-region-update-image": "Update snapshot",
   "pdf-region-shortcut-0": "Area annotation ({0} + drag)",
   "pdf-region-note-added": "Added to the reading note.",
   "pdf-region-note-failed": "Annotation saved. Could not update the reading note.",

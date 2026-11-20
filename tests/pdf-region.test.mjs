@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { crc32 } from "node:zlib";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-import { pdfRegionDrag, pdfRegionToBounds, pdfBoundsToRegion, pdfRegionRaster, savePdfRegion, insertPdfRegion, isPdfRegionShortcut, pdfRegionResize, replacePdfRegionGeometry } from "../src/pdf-region.js";
+import { pdfRegionDrag, pdfRegionToBounds, pdfBoundsToRegion, pdfRegionRaster, pdfRegionMove, savePdfRegion, insertPdfRegion, isPdfRegionShortcut, pdfRegionResize, replacePdfRegionGeometry, writePdfRegionImage, embedPdfRegionSnapshot } from "../src/pdf-region.js";
 import { footnotePdfBytes } from "./fixtures/pdf-footnotes.mjs";
 import { pdfRegionNoteRow, replaceManagedReadingHighlights } from "../src/reading-note.js";
 
@@ -45,6 +46,7 @@ test("PDF region raster crops a rotated page at the source and caps its longest 
 test("retrying a region save reuses the PNG and the annotation ID", async () => {
   const created = new Set();
   const vault = {
+    getFileByPath: () => null,
     adapter: { exists: async path => created.has(path) },
     createFolder: async path => { created.add(path); },
     createBinary: async path => { created.add(path); },
@@ -61,12 +63,26 @@ test("retrying a region save reuses the PNG and the annotation ID", async () => 
   assert.equal(captures, 1);
 });
 
+test("manually updating a snapshot writes to the existing attachment", async () => {
+  const file = { path: "ObsReader PDF Annotations/area.png" };
+  const png = Uint8Array.of(1, 2, 3).buffer;
+  const vault = {
+    getFileByPath: path => path === file.path ? file : null,
+    modifyBinary: (target, data) => {
+      assert.equal(target, file);
+      assert.equal(data, png);
+    },
+    createBinary: () => assert.fail("A new attachment would leave an old snapshot behind"),
+  };
+  await writePdfRegionImage(vault, file.path, png);
+});
+
 test("a region embeds its image without quote text and leaves manual note sections intact", () => {
   const image = "![[ObsReader PDF Annotations/region.png]]";
   const row = pdfRegionNoteRow(image, "Page 2", "[Return to source](obsidian://obsreader?page=2)", "\n\n**Comment:** Diagram");
   const original = "# Reading\n\n## Quotes\n\nOld snippet\n\n## My excerpts\n\n> Manual excerpt\n\n## Notes\n\nHandwritten notes\n";
   const withRegion = replaceManagedReadingHighlights(original, "## Quotes\n\n" + row, "Legacy excerpts");
-  assert.match(withRegion, /!\[\[ObsReader PDF Annotations\/region.png\]\]/);
+  assert.match(withRegion, /^> !\[\[ObsReader PDF Annotations\/region.png\]\]/m);
   assert.match(withRegion, /Page 2 · \[Return to source\]/);
   assert.match(withRegion, /\*\*Comment:\*\* Diagram/);
   const removed = replaceManagedReadingHighlights(withRegion, "", "Legacy excerpts");
@@ -93,13 +109,38 @@ test("resizing one edge clamps to the page and keeps the opposite edge fixed", (
   assert.deepEqual(pdfRegionResize(page, rect, "bottom", [30, 0]), rect);
 });
 
-test("replacing region geometry keeps its identity and newer metadata and is safe to retry", () => {
+test("resizing keeps the original attachment and preserves newer metadata", () => {
   const original = { id: "area-1", page: 2, kind: "pdf-region", imagePath: "old.png", color: "yellow", bounds: [1, 2, 3, 4] };
-  const replacement = { ...original, imagePath: "new.png", bounds: [0, 2, 3, 4] };
+  const bounds = [0, 2, 3, 4];
   const rows = [{ ...original, comment: "newer comment", color: "green" }];
-  replacePdfRegionGeometry(rows, original, replacement);
-  replacePdfRegionGeometry(rows, original, replacement);
-  assert.deepEqual(rows, [{ ...replacement, comment: "newer comment", color: "green" }]);
-  assert.throws(() => replacePdfRegionGeometry(rows, original, { ...replacement, imagePath: "conflict.png" }));
-  assert.throws(() => replacePdfRegionGeometry([], original, replacement));
+  replacePdfRegionGeometry(rows, original, bounds);
+  replacePdfRegionGeometry(rows, original, bounds);
+  assert.deepEqual(rows, [{ ...original, bounds, comment: "newer comment", color: "green" }]);
+  assert.throws(() => replacePdfRegionGeometry(rows, { ...original, imagePath: "conflict.png" }, bounds));
+  assert.throws(() => replacePdfRegionGeometry([], original, bounds));
+});
+
+test("PNG snapshots carry readable UTF-8 provenance with a valid chunk checksum", () => {
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aLioAAAAASUVORK5CYII=", "base64");
+  const snapshot = { annotationId: "area-1", sourcePath: "书籍/图表.pdf", page: 12, bounds: [2, 4, 80, 90], rotation: 90, capturedAt: "2026-11-20T01:02:03.000Z" };
+  const withMetadata = Buffer.from(embedPdfRegionSnapshot(png, snapshot));
+  const offset = 33;
+  const length = withMetadata.readUInt32BE(offset);
+  const end = offset + 8 + length;
+  assert.equal(withMetadata.toString("ascii", offset + 4, offset + 8), "iTXt");
+  const prefix = "ObsReader\0\0\0\0\0";
+  assert.equal(withMetadata.toString("utf8", offset + 8, offset + 8 + prefix.length), prefix);
+  assert.deepEqual(JSON.parse(withMetadata.toString("utf8", offset + 8 + prefix.length, end)), snapshot);
+  assert.equal(withMetadata.readUInt32BE(end), crc32(withMetadata.subarray(offset + 4, end)));
+  assert.deepEqual(withMetadata.subarray(0, offset), png.subarray(0, offset));
+  assert.deepEqual(withMetadata.subarray(end + 4), png.subarray(offset));
+});
+
+test("moving a PDF region preserves its size and stops at every page edge", () => {
+  const page = { width: 100, height: 80 };
+  const rect = { left: 20, top: 15, width: 45, height: 30 };
+  assert.deepEqual(pdfRegionMove(page, rect, [13, -8]), { ...rect, left: 33, top: 7 });
+  assert.deepEqual(pdfRegionMove(page, rect, [-200, -200]), { ...rect, left: 0, top: 0 });
+  assert.deepEqual(pdfRegionMove(page, rect, [200, 200]), { ...rect, left: 55, top: 50 });
+  assert.equal(pdfRegionMove(page, rect, [0, 0]), rect);
 });
