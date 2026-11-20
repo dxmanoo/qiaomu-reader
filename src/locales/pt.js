@@ -514,7 +514,7 @@ export default {
   "books-folder": "Pasta de livros",
   "empty-the-whole-vault": "Vazio = todo o vault",
   "reading-data-folder": "Pasta de dados de leitura",
-  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "Onde o progresso de leitura, os destaques e os backups de recuperação são mantidos (reading-progress.json, reading-highlights.json). Vazio — ao lado dos livros (na \"Pasta de livros\"). Os arquivos sincronizam com o vault.",
+  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "Onde o progresso de leitura, os destaques e os backups de recuperação são mantidos (obsreader-reading-progress.json, obsreader-reading-highlights.json). Vazio — ao lado dos livros (na \"Pasta de livros\"). Os arquivos sincronizam com o vault.",
   "next-to-the-books": "Ao lado dos livros",
   "notes-from-highlights-2": "Notas a partir de destaques",
   "note-template": "Modelo de nota",

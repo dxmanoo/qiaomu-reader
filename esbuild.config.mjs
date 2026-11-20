@@ -69,7 +69,7 @@ BUNDLED AZW3 CONVERSION LICENSES
 ${["licenses/lyceum-MIT.txt", "node_modules/@xmldom/xmldom/LICENSE", "node_modules/postcss/LICENSE", "node_modules/nanoid/LICENSE", "node_modules/picocolors/LICENSE", "node_modules/source-map-js/LICENSE"].map(file => fs.readFileSync(file, "utf8")).join("\n").replaceAll("*/", "* /")}
 Build channel: ${profile.name}
 If you want to view the source, please visit the plugin's GitHub repository:
-https://github.com/joeseesun/qiaomu-reader
+https://github.com/dxmanoo/qiaomu-reader
 
 BUNDLED PDF IMAGE/COLOR DECODER LICENSES
 ${pdfDecoderLicenses}

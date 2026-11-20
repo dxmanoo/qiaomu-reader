@@ -514,7 +514,7 @@ export default {
   "books-folder": "書籍フォルダー",
   "empty-the-whole-vault": "空 = 保管庫全体",
   "reading-data-folder": "読書データフォルダー",
-  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "読書進捗、ハイライト、レスキュー用バックアップが保存される場所（reading-progress.json、reading-highlights.json）。空の場合—本の隣（「書籍フォルダー」内）。ファイルは保管庫と一緒に同期されます。",
+  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "読書進捗、ハイライト、レスキュー用バックアップが保存される場所（obsreader-reading-progress.json、obsreader-reading-highlights.json）。空の場合—本の隣（「書籍フォルダー」内）。ファイルは保管庫と一緒に同期されます。",
   "next-to-the-books": "本の隣",
   "notes-from-highlights-2": "ハイライトからのノート",
   "note-template": "ノートテンプレート",

@@ -514,7 +514,7 @@ export default {
   "books-folder": "Bücherordner",
   "empty-the-whole-vault": "Leer = gesamter Vault",
   "reading-data-folder": "Lesedaten-Ordner",
-  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "Wo Lesefortschritt, Markierungen und Wiederherstellungs-Backups gespeichert werden (reading-progress.json, reading-highlights.json). Leer — neben den Büchern (im \"Bücherordner\"). Die Dateien werden mit dem Vault synchronisiert.",
+  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "Wo Lesefortschritt, Markierungen und Wiederherstellungs-Backups gespeichert werden (obsreader-reading-progress.json, obsreader-reading-highlights.json). Leer — neben den Büchern (im \"Bücherordner\"). Die Dateien werden mit dem Vault synchronisiert.",
   "next-to-the-books": "Neben den Büchern",
   "notes-from-highlights-2": "Notizen aus Markierungen",
   "note-template": "Notizvorlage",

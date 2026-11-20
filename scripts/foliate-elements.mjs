@@ -130,7 +130,7 @@ export function foliateElements(root = process.cwd()) {
     .update(fs.readFileSync(fileURLToPath(import.meta.url)))
     .update(fs.readFileSync(frameModule))
     .update(fs.readFileSync(groupingModule)).digest("hex").slice(0, 12);
-  const prefix = `qbr-${revision}-foliate`;
+  const prefix = `obsreader-${revision}-foliate`;
   return {
     define: { __QBR_ENGINE_VIEW_TAG__: JSON.stringify(`${prefix}-view`) },
     plugin: {

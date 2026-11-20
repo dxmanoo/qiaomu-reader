@@ -64,10 +64,10 @@ class LocalTtsManager {
     const home = this.os.homedir(), env = process.env, join = this.path.join;
     this.root = options.root || join(process.platform === 'darwin' ? join(home, 'Library', 'Application Support')
       : process.platform === 'win32' ? env.LOCALAPPDATA || join(home, 'AppData', 'Local')
-        : env.XDG_DATA_HOME || join(home, '.local', 'share'), 'qiaomu-reader', 'tts');
+        : env.XDG_DATA_HOME || join(home, '.local', 'share'), 'obsreader', 'tts');
     this.cache = options.cacheRoot || join(process.platform === 'darwin' ? join(home, 'Library', 'Caches')
       : process.platform === 'win32' ? env.LOCALAPPDATA || join(home, 'AppData', 'Local')
-        : env.XDG_CACHE_HOME || join(home, '.cache'), 'qiaomu-reader', 'tts-cache');
+        : env.XDG_CACHE_HOME || join(home, '.cache'), 'obsreader', 'tts-cache');
     this.version = `2-${this.crypto.createHash('sha256').update(workerSource + JSON.stringify(registry)).digest('hex').slice(0, 16)}`;
   }
   subscribe(callback) { this.listeners.add(callback); return () => this.listeners.delete(callback); }

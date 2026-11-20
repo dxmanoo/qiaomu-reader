@@ -1,6 +1,6 @@
 const SERVICE = /* @__PURE__ */ Symbol.for("qiaomu.pane-dividers.v1");
 const HANDLE = ".workspace-leaf-resize-handle";
-const VIEWS = /* @__PURE__ */ new Set(["qiaomu-reader", "qiaomu-book-reader-ai-chat", "qiaomu-agent-view", "qiaomu-ai-rss-reader", "qiaomu-home", "qiaomu-radio-view"]);
+const VIEWS = /* @__PURE__ */ new Set(["obsreader", "obsreader-ai-chat", "qiaomu-reader", "qiaomu-book-reader-ai-chat", "qiaomu-agent-view", "qiaomu-ai-rss-reader", "qiaomu-home", "qiaomu-radio-view"]);
 const STRUCTURE = ".workspace-leaf,.workspace-split,.workspace-tabs,.workspace-leaf-resize-handle";
 const PROPS = ["--qiaomu-divider-color", "--qiaomu-divider-hover", "--qiaomu-divider-start", "--qiaomu-divider-end", "--qiaomu-divider-direction"];
 function channels(color) {

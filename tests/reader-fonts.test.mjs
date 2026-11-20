@@ -60,7 +60,7 @@ test('font decoder failure never writes a font file or changes settings', async 
 test('import validates bytes, uses a safe content-derived path and reuses duplicate files', async () => {
   const f = fixture(), store = new ReaderFontStore(f.plugin), doc = f.doc();
   const first = await store.importFile(doc, upload(data(), '../字体.ttf'));
-  assert.match(first.path, /^_attachments\/qiaomu-reader-fonts\/[a-f0-9]{64}\.ttf$/);
+  assert.match(first.path, /^_attachments\/obsreader-fonts\/[a-f0-9]{64}\.ttf$/);
   assert.equal(doc.fonts.size, 1);
   f.plugin.settings.importedFonts = [first];
   const second = await store.importFile(doc, upload(data(), 'renamed.ttf'));
@@ -107,7 +107,7 @@ test('font write/readback failures are surfaced without adding saved font record
 });
 
 test('untrusted saved font records cannot redirect reads outside the import folder', () => {
-  const id = 'a'.repeat(64), good = { id, name:'test', format:'ttf', path:`_attachments/qiaomu-reader-fonts/${id}.ttf` };
+  const id = 'a'.repeat(64), good = { id, name:'test', format:'ttf', path:`_attachments/obsreader-fonts/${id}.ttf` };
   assert.equal(importedReaderFonts({ importedFonts:[good] }).length, 1);
   for (const broken of [{...good,path:'../../private.key'}, {...good,id:'bad'}, {...good,format:'exe'}, {...good,path:'https://example.com/font.ttf'}]) {
     assert.deepEqual(importedReaderFonts({ importedFonts:[broken] }), []);

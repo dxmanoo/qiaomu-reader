@@ -514,7 +514,7 @@ export default {
   "books-folder": "Dossier des livres",
   "empty-the-whole-vault": "Vide = tout le vault",
   "reading-data-folder": "Dossier des données de lecture",
-  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "Où sont conservés la progression de lecture, les surbrillances et les sauvegardes de récupération (reading-progress.json, reading-highlights.json). Vide — à côté des livres (dans le \"Dossier des livres\"). Les fichiers se synchronisent avec le vault.",
+  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "Où sont conservés la progression de lecture, les surbrillances et les sauvegardes de récupération (obsreader-reading-progress.json, obsreader-reading-highlights.json). Vide — à côté des livres (dans le \"Dossier des livres\"). Les fichiers se synchronisent avec le vault.",
   "next-to-the-books": "À côté des livres",
   "notes-from-highlights-2": "Notes à partir des surbrillances",
   "note-template": "Modèle de note",

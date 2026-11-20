@@ -20,7 +20,7 @@ export class AiAccountModal extends Modal {
     super(plugin.app); Object.assign(this, { plugin, id, preset, done, verify, activate: options.activate !== false });
     setAccountLanguage(plugin.settings.language || 'zh');
     const s = plugin.settings;
-    this.secretId = s.aiSecrets?.[id] || (s.aiProvider === id ? s.aiSecret : '') || `qiaomu-reader-${id}-${crypto.randomUUID()}`;
+    this.secretId = s.aiSecrets?.[id] || (s.aiProvider === id ? s.aiSecret : '') || `obsreader-${id}-${crypto.randomUUID()}`;
     this.secret = this.app.secretStorage.getSecret(this.secretId) || '';
     this.base = s.aiBases?.[id] || (s.aiProvider === id ? s.aiBase : '') || preset.base;
     this.models = [...(s.aiCatalogs?.[id] || [])];

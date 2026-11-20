@@ -60,7 +60,7 @@ function escapeRegex(value) {
 function normalizeExcerpt(value) {
   return String(value || "")
     .replace(/<[^>]*>/g, " ")
-    .replace(/\[[^\]]*\]\(obsidian:\/\/qiaomu-(?:book-)?reader[^)]*\)/g, " ")
+    .replace(/\[[^\]]*\]\(obsidian:\/\/(?:obsreader|qiaomu-(?:book-)?reader)[^)]*\)/g, " ")
     .replace(/\s+\*\([^)]*\)\*\s*$/, " ")
     .replace(/[*_=~`>#]/g, " ")
     .replace(/\s+/g, " ")

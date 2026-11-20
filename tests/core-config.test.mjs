@@ -332,8 +332,8 @@ test("fixed-layout PDF pages show a reserved loading state instead of a blank sh
 test("runtime diagnostics use the maintained plugin identity", () => {
   const source = fs.readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
   assert.doesNotMatch(source, /console\.(?:error|warn|log)\("Book Reader:/);
-  assert.match(source, /const VIEW_TYPE = "qiaomu-reader"/);
-  assert.match(source, /const LIB_VIEW_TYPE = "qiaomu-reader-library"/);
+  assert.match(source, /const VIEW_TYPE = "obsreader"/);
+  assert.match(source, /const LIB_VIEW_TYPE = "obsreader-library"/);
   assert.match(source, /const QiaomuBookReader = class extends Plugin/);
   assert.match(source, /export default QiaomuBookReader/);
 });
@@ -744,7 +744,7 @@ test("AI dialog supports custom quick prompts and keeps reasoning separate", () 
 test("desktop AI chat keeps per-book threads and structured document or selection context", () => {
   const source = fs.readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
   const css = fs.readFileSync(new URL("../styles.css", import.meta.url), "utf8");
-  assert.match(source, /const AI_CHAT_VIEW_TYPE = "qiaomu-book-reader-ai-chat"/);
+  assert.match(source, /const AI_CHAT_VIEW_TYPE = "obsreader-ai-chat"/);
   assert.match(source, /\[AI_CHAT_VIEW_TYPE, AiChatView\]/); // view registrations are table-driven in _registerReaderViews
   assert.match(source, /registerView\(viewType, \(leaf\) => new ViewClass\(leaf, this\)\)/);
   assert.match(source, /getRightLeaf\(false\)/);
@@ -897,7 +897,7 @@ test("reader chrome follows the selected theme and removes only the reader's red
   const css = fs.readFileSync(new URL("../styles.css", import.meta.url), "utf8");
   assert.match(css, /\.qiaomu-reader-top, \.qiaomu-reader-bot \{ background:var\(--qiaomu-reader-ui/);
   assert.match(css, /\.qiaomu-reader-night \{[^}]*color-scheme: dark;/s);
-  assert.match(css, /\.workspace-leaf-content\[data-type="qiaomu-reader"\] > \.view-header \{ display:none; \}/);
+  assert.match(css, /\.workspace-leaf-content\[data-type="obsreader"\] > \.view-header \{ display:none; \}/);
   assert.match(css, /\.qiaomu-reader-area \{[^}]*background:var\(--qiaomu-reader-bg/s);
 });
 

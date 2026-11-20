@@ -53,7 +53,7 @@ export function pdfBoundsToRegion(viewport, [x1, y1, x2, y2], displayed = viewpo
   return rectBetween(point(x1, y1), point(x2, y2));
 }
 
-export const PDF_REGION_FOLDER = "Qiaomu PDF Annotations";
+export const PDF_REGION_FOLDER = "ObsReader PDF Annotations";
 
 export function isPdfRegion(record) {
   return record?.kind === "pdf-region";

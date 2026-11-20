@@ -516,7 +516,7 @@ export default {
   "books-folder": "Папка с книгами",
   "empty-the-whole-vault": "Пусто = весь vault",
   "reading-data-folder": "Папка данных чтения",
-  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "Где хранятся прогресс чтения, выделения и резервные копии (reading-progress.json, reading-highlights.json). Пусто — рядом с книгами (в «Папке с книгами»). Файлы синхронизируются вместе с хранилищем.",
+  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "Где хранятся прогресс чтения, выделения и резервные копии (obsreader-reading-progress.json, obsreader-reading-highlights.json). Пусто — рядом с книгами (в «Папке с книгами»). Файлы синхронизируются вместе с хранилищем.",
   "next-to-the-books": "Рядом с книгами",
   "notes-from-highlights-2": "Заметки из выделений",
   "note-template": "Шаблон заметки",

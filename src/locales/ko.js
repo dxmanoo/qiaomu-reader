@@ -514,7 +514,7 @@ export default {
   "books-folder": "책 폴더",
   "empty-the-whole-vault": "비어 있음 = 전체 볼트",
   "reading-data-folder": "읽기 데이터 폴더",
-  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "읽기 진행률, 하이라이트 및 복구 백업이 저장되는 위치(reading-progress.json, reading-highlights.json). 비어 있음 — 책 옆(\"책 폴더\" 내). 파일은 볼트와 함께 동기화됩니다.",
+  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "읽기 진행률, 하이라이트 및 복구 백업이 저장되는 위치(obsreader-reading-progress.json, obsreader-reading-highlights.json). 비어 있음 — 책 옆(\"책 폴더\" 내). 파일은 볼트와 함께 동기화됩니다.",
   "next-to-the-books": "책 옆",
   "notes-from-highlights-2": "하이라이트에서 노트",
   "note-template": "노트 템플릿",

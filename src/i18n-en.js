@@ -514,7 +514,7 @@ export const QIAOMU_READER_EN = {
   "books-folder": "Books folder",
   "empty-the-whole-vault": "Empty = the whole vault",
   "reading-data-folder": "Reading-data folder",
-  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "Where reading progress, highlights and rescue backups are kept (reading-progress.json, reading-highlights.json). Empty — next to the books (in the \"Books folder\"). The files sync along with the vault.",
+  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "Where reading progress, highlights and rescue backups are kept (obsreader-reading-progress.json, obsreader-reading-highlights.json). Empty — next to the books (in the \"Books folder\"). The files sync along with the vault.",
   "next-to-the-books": "Next to the books",
   "notes-from-highlights-2": "Notes from highlights",
   "note-template": "Note template",

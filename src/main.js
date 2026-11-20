@@ -120,8 +120,8 @@ function qiaomuReaderLocale() {
   return uiLanguageMetadata(qiaomuReaderLanguage).locale;
 }
 
-const VIEW_TYPE = "qiaomu-reader";
-const AI_CHAT_VIEW_TYPE = "qiaomu-book-reader-ai-chat";
+const VIEW_TYPE = "obsreader";
+const AI_CHAT_VIEW_TYPE = "obsreader-ai-chat";
 // Settings defaults are assembled from concern-grouped fragments below. The
 // fragments are spread in the original key order, so the resulting object keeps
 // the exact persisted key layout: same keys, same values, same ordering.
@@ -1584,7 +1584,6 @@ const QiaomuBookReader = class extends Plugin {
     // Shows books in progress on Qiaomu Home (Qiaomu Home Protocol, see qiaomu-home.js).
     this.qiaomuHome = createHomeProvider(this, qiaomuReaderTranslate);
     this._registerBookProtocol();
-    this._registerReaderExtensions();
     this._addRibbonEntry();
     this._registerCommandsAndSettings();
     this._quietUiDocuments = new Map();
@@ -1695,27 +1694,10 @@ const QiaomuBookReader = class extends Plugin {
       const book = params.book || "";
       void this.openBookAt(book, params.block, params.page, params.highlight, params.cfi);
     };
-    this.registerObsidianProtocolHandler("qiaomu-reader", openBacklink);
-    // Existing reading notes keep working after users switch to the new plugin ID.
-    this.registerObsidianProtocolHandler("qiaomu-book-reader", openBacklink);
-  }
-  _registerReaderExtensions() {
-    this.registerExtensions(["epub"], VIEW_TYPE);
-    // The rendering engine formats: each gets its own guarded registration so
-    // a conflict with another plugin over one extension never takes the rest
-    // of the reader down.
-    for (const ext of ENGINE_EXTENSIONS) {
-      if (ext === "epub" || ext === "md" || ext === "markdown") continue;
-      try { this.registerExtensions([ext], VIEW_TYPE); }
-      catch (e) { console.warn(`Qiaomu Reader: could not register .${ext}`, e); }
-    }
-    // PDFs open in the reader too, falling back to the right-click menu when
-    // another plugin has claimed the extension.
-    try { this.registerExtensions(["pdf"], VIEW_TYPE); }
-    catch (e) { console.warn("Qiaomu Reader: could not register .pdf; use the file menu to open it in Qiaomu Reader", e); }
+    this.registerObsidianProtocolHandler("obsreader", openBacklink);
   }
   _addRibbonEntry() {
-    const libraryLabel = `Qiaomu Reader — ${qiaomuReaderTranslate("library")}`;
+    const libraryLabel = `${this.manifest.name} — ${qiaomuReaderTranslate("library")}`;
     this.addRibbonIcon("book-open", libraryLabel, () => this.openLibrary()).addClass("qiaomu-reader-ribbon");
   }
   _registerCommandsAndSettings() {
@@ -1854,7 +1836,7 @@ const QiaomuBookReader = class extends Plugin {
   _registerPdfFileMenu() {
     const onFileMenu = (menu, file) => {
       if (!(file instanceof TFile) || !BOOK_EXTENSIONS.has(file.extension.toLowerCase())) return;
-      menu.addItem((item) => item.setTitle(qiaomuReaderTranslate("open-in-book-reader")).setIcon("book-open").onClick(() => this.openFile(file)));
+      menu.addItem((item) => item.setTitle(`${qiaomuReaderTranslate("open-in-book-reader")} · ${this.manifest.name}`).setIcon("book-open").onClick(() => this.openFile(file)));
       if (Platform.isDesktopApp && this.kindle?.isBook(file)) {
         menu.addItem(item => item.setTitle(qiaomuReaderTranslate("kindle.send")).setIcon("send").onClick(() => void this.sendToKindle(file)));
       }
@@ -2108,16 +2090,16 @@ const QiaomuBookReader = class extends Plugin {
   }
   _progressFilePath() {
     const folder = this._dataFolder();
-    return qiaomuReaderPath(folder ? `${folder}/reading-progress.json` : "reading-progress.json");
+    return qiaomuReaderPath(folder ? `${folder}/obsreader-reading-progress.json` : "obsreader-reading-progress.json");
   }
   _progressRecoveryFilePath() {
     return qiaomuReaderPath(`${this.manifest.dir}/reading-progress-recovery.json`);
   }
   _storeRecoveryHint() {
     const folder = this._dataFolder();
-    if (folder) return qiaomuReaderPath(`${folder}/_reader-rescue`);
+    if (folder) return qiaomuReaderPath(`${folder}/_obsreader-rescue`);
     if (this._lastBookPath && this._lastBookPath.includes("/")) {
-      return qiaomuReaderPath(`${this._lastBookPath.slice(0, this._lastBookPath.lastIndexOf("/"))}/_reader-rescue`);
+      return qiaomuReaderPath(`${this._lastBookPath.slice(0, this._lastBookPath.lastIndexOf("/"))}/_obsreader-rescue`);
     }
     return "";
   }
@@ -2313,7 +2295,7 @@ const QiaomuBookReader = class extends Plugin {
         // Metadata cache may still be empty while the plugin is loading. The
         // linked file is eligible when either the cache or its own frontmatter
         // carries the explicit reading-note marker.
-        const markedInText = /^---\s*\n[\s\S]*?\n(?:type:\s*(?:reading-note|book-note)|book-reader-note:\s*true)\s*\n[\s\S]*?\n---(?:\n|$)/im.test(before);
+        const markedInText = /^---\s*\n[\s\S]*?\nobsreader-note:\s*true\s*\n[\s\S]*?\n---(?:\n|$)/im.test(before);
         if (!isMarkedReadingNote(this.app, note) && !markedInText) continue;
         const after = stripGeneratedReadingNoteTitle(before, note.basename);
         if (after !== before) await this.app.vault.modify(note, after);
@@ -2778,10 +2760,10 @@ const QiaomuBookReader = class extends Plugin {
       const bf = this._dataFolder();
       let base;
       if (bf) {
-        base = qiaomuReaderPath(`${bf}/_reader-rescue`);
+        base = qiaomuReaderPath(`${bf}/_obsreader-rescue`);
       } else if (this._lastBookPath && this._lastBookPath.includes("/")) {
         const bookDir = this._lastBookPath.slice(0, this._lastBookPath.lastIndexOf("/"));
-        base = qiaomuReaderPath(`${bookDir}/_reader-rescue`);
+        base = qiaomuReaderPath(`${bookDir}/_obsreader-rescue`);
       } else {
         return;
       }
@@ -2884,7 +2866,7 @@ const QiaomuBookReader = class extends Plugin {
   }
   _highlightsFilePath() {
     const folder = this._dataFolder();
-    return qiaomuReaderPath(folder ? `${folder}/reading-highlights.json` : "reading-highlights.json");
+    return qiaomuReaderPath(folder ? `${folder}/obsreader-reading-highlights.json` : "obsreader-reading-highlights.json");
   }
   async _loadHighlightsFromVault() {
     return this._loadJsonStore(this._highlightsFilePath(), qiaomuReaderTranslate("highlights"));
@@ -8690,7 +8672,7 @@ function wrapBlockRange(block, start, end, hl) {
 }
 function _readerSettings(app) {
   const plugins = app && app.plugins && app.plugins.plugins;
-  const p = plugins ? plugins["qiaomu-reader"] : null;
+  const p = plugins ? plugins["obsreader"] : null;
   return p && p.settings || {};
 }
 function noteTemplatePath(app, bookFile) {
@@ -9671,14 +9653,14 @@ function isUnsafeReadingNote(app, note) {
   const cache = app.metadataCache.getFileCache(note);
   const fm = cache && cache.frontmatter || {};
   const type = String(fm.type || "").trim().toLowerCase();
-  return ["person", "people", "meeting", "daily", "project", "template"].includes(type);
+  if (["person", "people", "meeting", "daily", "project", "template"].includes(type)) return true;
+  return fm["obsreader-note"] !== true && (fm["book-reader-note"] === true || ["reading-note", "book-note"].includes(type));
 }
 function isMarkedReadingNote(app, note) {
   if (!(note instanceof TFile) || isUnsafeReadingNote(app, note)) return false;
   const cache = app.metadataCache.getFileCache(note);
   const fm = cache && cache.frontmatter || {};
-  const type = String(fm.type || "").trim().toLowerCase();
-  return fm["book-reader-note"] === true || ["reading-note", "book-note"].includes(type);
+  return fm["obsreader-note"] === true;
 }
 function stripGeneratedReadingNoteTitle(data, title) {
   const original = String(data || "");
@@ -9717,11 +9699,11 @@ function bookNoteFromFrontmatter(plugin, bookFile) {
       const cache = app.metadataCache.getFileCache(md);
       const meta = cache && cache.frontmatter;
       if (!meta) continue;
-      const value = meta.book != null ? meta.book : meta["annotation-target"];
+      const value = meta["obsreader-book"];
       if (!value) { continue; }
       const target = String(value).trim().replace(/^\[\[|\]\]$/g, "").split("|")[0].trim();
       if (!target) { continue; }
-      if (qiaomuReaderPath(target) === want || target === baseName) return md.basename;
+      if (qiaomuReaderPath(target) === want || target === baseName) return md.path;
     }
   } catch {
     // scanning vault frontmatter is best-effort; it must never disturb reading
@@ -9734,9 +9716,9 @@ async function writeBookProperty(app, noteName, bookFile, extras = {}) {
     const note = resolveBookNote(app, noteName);
     if (!note) return;
     await app.fileManager.processFrontMatter(note, (fm) => {
-      fm.book = `[[${bookFile.path}]]`;
-      if (!fm.type) fm.type = "reading-note";
-      fm["book-reader-note"] = true;
+      fm["obsreader-book"] = `[[${bookFile.path}]]`;
+      if (!fm.type || ["reading-note", "book-note"].includes(fm.type)) fm.type = "obsreader-note";
+      fm["obsreader-note"] = true;
       if (extras.calibre_uuid) fm.calibre_uuid = extras.calibre_uuid;
       if (extras.calibre_id) fm.calibre_id = extras.calibre_id;
       if (extras.isbn) fm.isbn = extras.isbn;
@@ -9990,7 +9972,7 @@ function addBookFileMenu(app, menu, file) {
     const tree = explorer.view;
     if (tree && typeof tree.revealInFolder === "function") tree.revealInFolder(file);
   }));
-  app.workspace.trigger("file-menu", menu, file, "qiaomu-reader");
+    app.workspace.trigger("file-menu", menu, file, "obsreader");
   return menu;
 }
 // Path-keyed stores have to forget the removed book, otherwise stale progress,
@@ -11585,7 +11567,7 @@ const ReaderView = class extends ItemView {
     this.pbarFill = pb.createDiv("qiaomu-reader-pbar-fill");
     const tray = buildReaderTopBar(this, {
       backAttr: { "aria-label": qiaomuReaderTranslate("library") },
-      title: "Qiaomu Reader",
+      title: this.plugin.manifest.name,
       onBack: () => this.plugin.openLibrary(),
     });
     createPdfZoomControls(tray, this);
@@ -13004,7 +12986,7 @@ const BookDiscoveryModal = class extends Modal {
 // it can be maximised like any other. Same code draws both: the drawing never
 // cared whether it lived in a dialog, only that it had an element to draw into
 // and a way to close itself.
-const LIB_VIEW_TYPE = "qiaomu-reader-library";
+const LIB_VIEW_TYPE = "obsreader-library";
 const LibraryView = class extends ItemView {
   constructor(leaf, plugin) {
     super(leaf);

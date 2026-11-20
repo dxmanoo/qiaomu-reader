@@ -1,6 +1,6 @@
 export const FONT_FILE_ACCEPT = ".ttf,.otf,.woff,.woff2";
 export const MAX_FONT_BYTES = 64 * 1024 * 1024;
-const FONT_FOLDER = "_attachments/qiaomu-reader-fonts";
+const FONT_FOLDER = "_attachments/obsreader-fonts";
 const stores = new WeakMap();
 
 export function importedFontFamily(id) {

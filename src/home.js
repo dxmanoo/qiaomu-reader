@@ -72,7 +72,7 @@ export function createHomeProvider(plugin, translate) {
         icon: "book-plus",
         run: async () => {
           await plugin.openLibrary();
-          const view = plugin.app.workspace.getLeavesOfType("qiaomu-reader-library")[0]?.view;
+          const view = plugin.app.workspace.getLeavesOfType("obsreader-library")[0]?.view;
           if (view && typeof view._pickBooks === "function") view._pickBooks();
         },
       }];

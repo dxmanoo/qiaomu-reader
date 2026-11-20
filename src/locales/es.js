@@ -514,7 +514,7 @@ export default {
   "books-folder": "Carpeta de libros",
   "empty-the-whole-vault": "Vacío = todo el vault",
   "reading-data-folder": "Carpeta de datos de lectura",
-  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "Dónde se guardan el progreso de lectura, los resaltados y las copias de seguridad de recuperación (reading-progress.json, reading-highlights.json). Vacío — junto a los libros (en la \"Carpeta de libros\"). Los archivos se sincronizan con el vault.",
+  "where-reading-progress-highlights-and-rescue-backups-are-kept-re": "Dónde se guardan el progreso de lectura, los resaltados y las copias de seguridad de recuperación (obsreader-reading-progress.json, obsreader-reading-highlights.json). Vacío — junto a los libros (en la \"Carpeta de libros\"). Los archivos se sincronizan con el vault.",
   "next-to-the-books": "Junto a los libros",
   "notes-from-highlights-2": "Notas de resaltados",
   "note-template": "Plantilla de nota",

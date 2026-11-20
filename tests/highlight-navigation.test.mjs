@@ -12,7 +12,7 @@ test("CFI backlinks round-trip vault, paths and ranges without breaking Markdown
   const uri = highlightBacklink(vault, book, { id: "mark-1", cfi });
   assert.doesNotMatch(uri, /[ ()]/);
   const parsed = new URL(uri);
-  assert.equal(parsed.hostname, "qiaomu-reader");
+  assert.equal(parsed.hostname, "obsreader");
   assert.equal(parsed.searchParams.get("vault"), vault);
   assert.equal(parsed.searchParams.get("book"), book);
   assert.equal(parsed.searchParams.get("cfi"), cfi);
@@ -91,24 +91,25 @@ test("protocol dispatch waits for its opened view and keeps CFI ahead of legacy 
   assert.equal(calls[3], "page:12");
 });
 
-test("new and existing note protocols dispatch to the same book location", async () => {
+test("ObsReader registers its own protocol and leaves the upstream handlers free", async () => {
   const source = fs.readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
-  const code = source.slice(source.indexOf("  _registerBookProtocol() {"), source.indexOf("  _registerReaderExtensions() {"));
+  const code = source.slice(source.indexOf("  _registerBookProtocol() {"), source.indexOf("  _addRibbonEntry() {"));
   const register = vm.runInNewContext(`({${code}})._registerBookProtocol`);
   const handlers = new Map();
   const calls = [];
   register.call({ registerObsidianProtocolHandler: (name, handler) => handlers.set(name, handler), openBookAt: (...args) => calls.push(args) });
-  for (const scheme of ["qiaomu-reader", "qiaomu-book-reader"]) {
+  assert.deepEqual([...handlers.keys()], ["obsreader"]);
+  for (const scheme of ["obsreader"]) {
     assert.equal(typeof handlers.get(scheme), "function");
     handlers.get(scheme)({ book: "书籍/a.mobi", highlight: "h1", cfi });
   }
-  assert.deepEqual(calls, [["书籍/a.mobi", undefined, undefined, "h1", cfi], ["书籍/a.mobi", undefined, undefined, "h1", cfi]]);
+  assert.deepEqual(calls, [["书籍/a.mobi", undefined, undefined, "h1", cfi]]);
 });
 
 test("reading-note paths resolve settings from the new plugin identity", () => {
   const source = fs.readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
   const code = source.slice(source.indexOf("function _readerSettings(app)"), source.indexOf("function inboxNotePath("));
   const resolve = vm.runInNewContext(`(()=>{${code};return bookNotesFolderPath})()`, { qiaomuReaderPath: (s) => s });
-  const app = { plugins: { plugins: { "qiaomu-reader": { settings: { bookNotesFolder: "阅读笔记" } }, "qiaomu-book-reader": { settings: { bookNotesFolder: "旧路径" } } } } };
+  const app = { plugins: { plugins: { "obsreader": { settings: { bookNotesFolder: "阅读笔记" } }, "qiaomu-reader": { settings: { bookNotesFolder: "旧路径" } } } } };
   assert.equal(resolve(app), "阅读笔记");
 });

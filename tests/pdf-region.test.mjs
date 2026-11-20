@@ -49,7 +49,7 @@ test("retrying a region save reuses the PNG and the annotation ID", async () => 
     createFolder: async path => { created.add(path); },
     createBinary: async path => { created.add(path); },
   };
-  const record = { id: "test-region", color: "yellow", imagePath: "Qiaomu PDF Annotations/test-region.png" };
+  const record = { id: "test-region", color: "yellow", imagePath: "ObsReader PDF Annotations/test-region.png" };
   const rows = [];
   let captures = 0;
   const capture = async () => { captures++; return new ArrayBuffer(0); };
@@ -62,11 +62,11 @@ test("retrying a region save reuses the PNG and the annotation ID", async () => 
 });
 
 test("a region embeds its image without quote text and leaves manual note sections intact", () => {
-  const image = "![[Qiaomu PDF Annotations/region.png]]";
-  const row = pdfRegionNoteRow(image, "Page 2", "[Return to source](obsidian://qiaomu-reader?page=2)", "\n\n**Comment:** Diagram");
+  const image = "![[ObsReader PDF Annotations/region.png]]";
+  const row = pdfRegionNoteRow(image, "Page 2", "[Return to source](obsidian://obsreader?page=2)", "\n\n**Comment:** Diagram");
   const original = "# Reading\n\n## Quotes\n\nOld snippet\n\n## My excerpts\n\n> Manual excerpt\n\n## Notes\n\nHandwritten notes\n";
   const withRegion = replaceManagedReadingHighlights(original, "## Quotes\n\n" + row, "Legacy excerpts");
-  assert.match(withRegion, /!\[\[Qiaomu PDF Annotations\/region.png\]\]/);
+  assert.match(withRegion, /!\[\[ObsReader PDF Annotations\/region.png\]\]/);
   assert.match(withRegion, /Page 2 · \[Return to source\]/);
   assert.match(withRegion, /\*\*Comment:\*\* Diagram/);
   const removed = replaceManagedReadingHighlights(withRegion, "", "Legacy excerpts");

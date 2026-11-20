@@ -100,8 +100,8 @@ if (!source.includes("BUNDLED_FONT_FAMILIES.zhuque")) {
 if (!source.includes('function backlinkLabel() { return "↩"; }')) {
   errors.push("Reading-note backlinks are not rendered as a quiet icon-only link");
 }
-if (!source.includes('registerObsidianProtocolHandler("qiaomu-book-reader"')) {
-  errors.push("Qiaomu reading-note backlinks are missing");
+if (!source.includes('registerObsidianProtocolHandler("obsreader"')) {
+  errors.push("ObsReader reading-note backlinks are missing");
 }
 if (!source.includes("iconBacklinksMigrated") || !source.includes("await syncHighlightsToReadingNote(this.app, this, bookPath, items)")) {
   errors.push("Existing managed reading notes are not migrated to icon-only backlinks on upgrade");
@@ -121,7 +121,7 @@ if (!source.includes("const tplPath = bookNoteTemplatePath(this.app)")) {
 if (!source.includes("if (!isMarkedReadingNote(app, md)) continue")) {
   errors.push("Frontmatter inference can still capture ordinary or template notes");
 }
-if (!source.includes('fm["book-reader-note"] = true')) {
+if (!source.includes('fm["obsreader-note"] = true')) {
   errors.push("Created reading notes are not marked explicitly");
 }
 if (!readingNoteSource.includes("function headingRanges") || !source.includes("syncHighlightsToReadingNote")) {

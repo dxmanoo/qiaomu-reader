@@ -1,6 +1,6 @@
 // Obsidian uses aria-label as hover-tooltip text. Keep accessible names through
 // aria-labelledby instead, only on this plugin's UI, including later updates.
-const scope = '[class*="qiaomu-reader-"], [data-type="qiaomu-book-reader-ai-chat"]';
+const scope = '[class*="qiaomu-reader-"], [data-type="obsreader-ai-chat"]';
 let nextLabel = 0;
 const session = Math.random().toString(36).slice(2);
 
@@ -53,6 +53,7 @@ export function watchQuietUi(document) {
   return () => {
     observer.disconnect();
     for (const el of document.querySelectorAll("[data-qbr-label-id]")) {
+      if (!el.dataset.qbrLabelId.startsWith(`qbr-label-${session}-`)) continue;
       const label = document.getElementById(el.dataset.qbrLabelId);
       if (label) { el.setAttribute("aria-label", label.textContent); label.remove(); }
       el.removeAttribute("aria-labelledby");
